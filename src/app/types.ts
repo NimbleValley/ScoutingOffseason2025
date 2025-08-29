@@ -36,6 +36,7 @@ export type ColumnPercentiles = {
 
 export const numericColumns = [
     "teamNumber",
+    "opr",
     "totalPoints",
     "autoPoints",
     "telePoints",

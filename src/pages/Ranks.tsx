@@ -43,7 +43,7 @@ export default function Ranks() {
                         <div className="flex flex-col lg:flex-row gap-5">
                             <CustomSelect view={category} setView={setCategory} label={'Category:'} options={numericColumns.filter((value) => value != 'teamNumber')}></CustomSelect>
                             <CustomSelect view={valueType} setView={setValueType} label={'Type:'} options={['min', 'mean', 'median', 'q3', 'max',]}></CustomSelect>
-                            <CustomSelect view={showGraph} setView={(v) => setShowGraph(v === true || v === 'true')} label={'Show graph:'} options={[true, false]}></CustomSelect>
+                            <CustomSelect view={showGraph} setView={(v: string | boolean) => setShowGraph(v === true || v === 'true')} label={'Show graph:'} options={[true, false]}></CustomSelect>
                         </div>
                         <div className='h-10' />
                         <TableWithChart data={chartData} category={formatCategory(category)} show={showGraph} ></TableWithChart>

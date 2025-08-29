@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
+import { numericColumns } from "./types";
 
-const TBA_KEY: string =
+export const TBA_KEY: string =
   "sBluV8DKQA0hTvJ2ABC9U3VDZunUGUSehxuDPvtNC8SQ3Q5XHvQVt0nm3X7cvP7j";
 
 export interface StatboticsTeam {
@@ -15,7 +16,7 @@ export interface StatboticsTeam {
   rookie_year?: number;
   epa?: {
     total_points?: { [key: string]: number };
-    [key: string]: any; // allows other nested stats to exist
+    [key: string]: any;
   };
   record?: {
     wins?: number;
@@ -30,9 +31,18 @@ export interface StatboticsTeam {
   competing?: {
     [key: string]: any;
   };
-  [key: string]: any; // allows additional top-level fields
+  [key: string]: any;
 }
 
+export interface PitScoutingForm {
+  id?: string;
+  teamNumber: number;
+  algaeDetails: string;
+  climbDetails: string;
+  driverExperience: string;
+  recentChanges: string;
+  [key: string]: any;
+}
 
 export interface ScoutingForm {
   id?: string;
@@ -72,12 +82,13 @@ export interface ColumnPercentiles {
 
 interface TbaData {
   rankings: any[];
-  oprs: Record<string, number>; // keyed by team key
+  oprs: Record<string, number>;
   matches: any[];
 }
 
 interface ScoutingState {
   forms: ScoutingForm[];
+  pitForms: PitScoutingForm[];
   teamStats: Record<number, TeamStats>;
   columnPercentiles: ColumnPercentiles;
   loading: boolean;
@@ -87,6 +98,9 @@ interface ScoutingState {
   tbaData: TbaData | null;
   statboticsTeams: StatboticsTeam;
   currentViewingTeam: number;
+  teamInfo: Record<number, { name: string; nickname: string }>;
+  teamImages: Record<number, string>;
+  loadTeamImages: () => Promise<void>;
   setCurrentViewingTeam: (team: number) => void;
   loadStatbotics: () => Promise<void>;
   setEventName: (name: string) => void;
@@ -97,34 +111,6 @@ interface ScoutingState {
 
 /* ---------------- Helpers ---------------- */
 
-const numericColumns = [
-  "teamNumber",
-  "totalPoints",
-  "autoPoints",
-  "telePoints",
-  "endgamePoints",
-  "autoCoral",
-  "teleCoral",
-  "totalCoral",
-  "totalAlgae",
-  "totalGamepieces",
-  "autoNetCount",
-  "autoMissNetCount",
-  "autoProcessorCount",
-  "autoL4Count",
-  "autoL3Count",
-  "autoL2Count",
-  "autoL1Count",
-  "autoMissCoralCount",
-  "teleNetCount",
-  "teleMissNetCount",
-  "teleProcessorCount",
-  "teleL4Count",
-  "teleL3Count",
-  "teleL2Count",
-  "teleL1Count",
-  "teleMissCoralCount",
-];
 
 function computeStats(values: number[]): StatRecord {
   if (!values.length) return { max: 0, min: 0, median: 0, mean: 0, q3: 0 };
@@ -207,27 +193,41 @@ async function fetchEvents(year: number) {
   }
 }
 
-async function fetchForms(): Promise<ScoutingForm[]> {
+async function fetchScoutForms(): Promise<ScoutingForm[]> {
   const querySnapshot = await getDocs(collection(db, "scoutingForms"));
   return querySnapshot.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .map((doc) => ({ id: doc.id, matchNumber: Number(doc.data().matchNumber), teamNumber: Number(doc.data().teamNumber), ...doc.data() }))
     .filter((f) => f.teamNumber !== -1)
     .sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
 }
 
-async function fetchTbaData(eventKey: string): Promise<TbaData | null> {
+async function fetchPitForms(): Promise<PitScoutingForm[]> {
+  const querySnapshot = await getDocs(collection(db, "pitScout"));
+  return querySnapshot.docs
+    .map((doc) => ({ id: doc.id, teamNumber: Number(doc.data().teamNumber), algaeDetails: doc.data().algaeDetails, climbDetails: doc.data().climbDetails, recentChanges: doc.data().recentChanges, driverExperience: doc.data().driverExperience }))
+    .filter((f) => f.teamNumber !== -1);
+}
+
+async function fetchTbaData(
+  eventKey: string
+): Promise<{ tbaData: TbaData; teamInfo: Record<number, { name: string; nickname: string }> } | null> {
   if (!eventKey || eventKey === "XX") return null;
   try {
-    const [rankingsRes, oprsRes, matchesRes] = await Promise.all([
+    const [rankingsRes, oprsRes, matchesRes, teamsRes] = await Promise.all([
       fetch(
         `https://www.thebluealliance.com/api/v3/event/${eventKey}/rankings`,
         { headers: { "X-TBA-Auth-Key": TBA_KEY } }
       ),
-      fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/oprs`, {
-        headers: { "X-TBA-Auth-Key": TBA_KEY },
-      }),
+      fetch(
+        `https://www.thebluealliance.com/api/v3/event/${eventKey}/oprs`,
+        { headers: { "X-TBA-Auth-Key": TBA_KEY } }
+      ),
       fetch(
         `https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`,
+        { headers: { "X-TBA-Auth-Key": TBA_KEY } }
+      ),
+      fetch(
+        `https://www.thebluealliance.com/api/v3/event/${eventKey}/teams`,
         { headers: { "X-TBA-Auth-Key": TBA_KEY } }
       ),
     ]);
@@ -235,11 +235,23 @@ async function fetchTbaData(eventKey: string): Promise<TbaData | null> {
     const rankings = await rankingsRes.json();
     const oprData = await oprsRes.json();
     const matches = await matchesRes.json();
+    const teams = await teamsRes.json();
+
+    const teamInfo: Record<number, { name: string; nickname: string }> = {};
+    teams.forEach((t: any) => {
+      teamInfo[t.team_number] = {
+        name: t.name ?? `Team ${t.team_number}`,
+        nickname: t.nickname ?? `Team ${t.team_number}`,
+      };
+    });
 
     return {
-      rankings: rankings.rankings ?? [],
-      oprs: oprData.oprs ?? {},
-      matches,
+      tbaData: {
+        rankings: rankings.rankings ?? [],
+        oprs: oprData.oprs ?? {},
+        matches,
+      },
+      teamInfo,
     };
   } catch (err) {
     console.error("TBA fetch error", err);
@@ -247,10 +259,14 @@ async function fetchTbaData(eventKey: string): Promise<TbaData | null> {
   }
 }
 
-async function loadStatboticsTeam(team: number): Promise<StatboticsTeam | null> {
+async function loadStatboticsTeam(
+  team: number
+): Promise<StatboticsTeam | null> {
   try {
     const year = new Date().getFullYear();
-    const res = await fetch(`https://api.statbotics.io/v3/team_year/${String(team)}/${year}`);
+    const res = await fetch(
+      `https://api.statbotics.io/v3/team_year/${String(team)}/${year}`
+    );
     const data = await res.json();
     return data;
   } catch (err) {
@@ -263,45 +279,71 @@ async function loadStatboticsTeam(team: number): Promise<StatboticsTeam | null> 
 
 export const useScoutingStore = create<ScoutingState>((set, get) => ({
   forms: [],
+  pitForms: [],
   teamStats: {},
   columnPercentiles: {},
   loading: true,
   eventKeys: [],
   tbaData: null,
+  teamInfo: {},
   eventName: localStorage.getItem("eventName") || "XX",
-  currentViewingTeam: Number(localStorage.getItem("currentViewingTeam") || 3197),
+  currentViewingTeam: Number(
+    localStorage.getItem("currentViewingTeam") || 3197
+  ),
   usePracticeData: localStorage.getItem("usePracticeData") === "true",
-  statboticsTeams: [],
+  statboticsTeams: [] as any,
+  teamImages: {},
+
+  loadTeamImages: async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "robotImages"));
+      const images: Record<number, string> = {};
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        // assumes doc.id = "image_team1259"
+        const match = doc.id.match(/image_team(\d+)/);
+        if (match) {
+          const teamNumber = parseInt(match[1], 10);
+          images[teamNumber] = data.url; // Firestore field "url"
+        }
+      });
+
+      set({ teamImages: images });
+    } catch (error) {
+      console.error("Error loading team images:", error);
+    }
+  },
+
+  // What is this haha
   loadStatbotics: async () => {
     set({ loading: true });
-
-    const statboticsData = await (loadStatboticsTeam(get().currentViewingTeam));
-
+    const statboticsData = await loadStatboticsTeam(get().currentViewingTeam);
     set({
-      statboticsTeams: statboticsData,
+      statboticsTeams: statboticsData ?? undefined,
       loading: false,
     });
   },
+
   setEventName: (name) => {
     localStorage.setItem("eventName", name);
     set({ eventName: name });
   },
+
   setCurrentViewingTeam: async (team) => {
     set({ loading: true });
     localStorage.setItem("currentViewingTeam", String(team));
-
-    //const statboticsData = await (loadStatboticsTeam(String(team)));
-
     set({
-      //statboticsTeams: statboticsData,
       currentViewingTeam: team,
       loading: false,
     });
   },
+
   setUsePracticeData: (value) => {
     localStorage.setItem("usePracticeData", String(value));
     set({ usePracticeData: value });
   },
+
   loadData: async () => {
     if (get().forms.length > 0) return;
     await get().hotRefresh();
@@ -311,21 +353,58 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
     set({ loading: true });
     const year = new Date().getFullYear();
 
-    const [eventsData, formsData, tbaData] = await Promise.all([
+    const [eventsData, formsData, pitFormsData, tbaWrapped] = await Promise.all([
       fetchEvents(year),
-      fetchForms(),
+      fetchScoutForms(),
+      fetchPitForms(),
       fetchTbaData(get().eventName),
     ]);
 
     const teamStats = computeTeamStats(formsData);
+
+    // Inject OPR into teamStats
+    if (tbaWrapped?.tbaData?.oprs) {
+      Object.entries(tbaWrapped.tbaData.oprs).forEach(([teamStr, opr]) => {
+        const team = Number(teamStr.replace('frc', ''));
+        if (Object.keys(teamStats).includes(String(team))) {
+          const roundedOPR = Math.round(opr * 10) / 10;
+          if (!teamStats[team]) {
+            teamStats[team] = {};
+          }
+          teamStats[team]["opr"] = {
+            max: roundedOPR,
+            min: roundedOPR,
+            median: roundedOPR,
+            mean: roundedOPR,
+            q3: roundedOPR,
+          };
+        }
+      });
+    }
+
+    Object.keys(teamStats).forEach((teamStr) => {
+        const team = Number(teamStr);
+        if (!teamStats[team]["opr"]) {
+          teamStats[team]["opr"] = {
+            max: 0,
+            min: 0,
+            median: 0,
+            mean: 0,
+            q3: 0,
+          };
+        }
+      });
+
     const columnPercentiles = computeColumnPercentiles(teamStats);
 
     set({
       forms: formsData,
+      pitForms: pitFormsData,
       teamStats,
       columnPercentiles,
       eventKeys: eventsData,
-      tbaData,
+      tbaData: tbaWrapped?.tbaData ?? null,
+      teamInfo: tbaWrapped?.teamInfo ?? {},
       loading: false,
     });
   },

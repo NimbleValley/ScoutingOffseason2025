@@ -47,6 +47,7 @@ const columnOrder = [
 
 // Columns that will get percentile-based highlighting
 const percentileColumns = [
+    "opr",
     "totalPoints",
     "autoPoints",
     "telePoints",
@@ -186,7 +187,7 @@ export default function Tables() {
 
                         <table className="table-auto border-collapse border border-gray-300 w-full text-sm md:text-base mt-18 ml-0 mb-15">
                             <thead className="sticky top-15 transition-top duration-250">
-                                <tr className="bg-gray-200">
+                                <tr className="bg-gray-200 shadow-lg ">
                                     {(tableType === "Raw" ? columnOrder : numericColumns).map((col) => (
                                         <th
                                             key={col}
@@ -272,13 +273,13 @@ export default function Tables() {
                                                     let className = ` rounded-md px-4 py-1 transition duration-250 `;
                                                     if (percentileColumns.includes(col) && showHighlight) {
                                                         if (value <= p10)
-                                                            className = className.concat(" bg-red-500 font-bold ");
+                                                            className = className.concat(" bg-red-500 font-bold shadow-md ");
                                                         else if (value <= p25)
-                                                            className = className.concat(" bg-red-200 ");
+                                                            className = className.concat(" bg-red-200 shadow-md ");
                                                         else if (value >= p90)
-                                                            className = className.concat(" bg-blue-300 font-bold ");
+                                                            className = className.concat(" bg-blue-300 font-bold shadow-md ");
                                                         else if (value >= p75)
-                                                            className = className.concat(" bg-green-200 ");
+                                                            className = className.concat(" bg-green-200 shadow-md ");
                                                     }
 
                                                     return (
@@ -357,11 +358,11 @@ function TeamValueTypeSelector({
                 }
                 className="px-3 py-1 border-2 border-gray-300 rounded hover:shadow-xl hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer transition-shadow-border duration-250"
             >
-                <option value="Min">Min</option>
+                <option value="Max">Max</option>
+                <option value="Q3">Q3</option>
                 <option value="Median">Median</option>
                 <option value="Mean">Mean</option>
-                <option value="Q3">Q3</option>
-                <option value="Max">Max</option>
+                <option value="Min">Min</option>
             </select>
         </div>
     );

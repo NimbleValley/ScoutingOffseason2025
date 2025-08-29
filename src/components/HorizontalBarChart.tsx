@@ -12,9 +12,9 @@ export default function TableWithChart({ data, category, show }: { data: ChartRo
   const sortedData = [...data].sort((a, b) => b.value - a.value);
 
   return (
-    <div className="flex flex-row gap-0 w-full mb-10">
+    <div className="flex flex-row gap-0 w-full mb-10 justify-center">
       {/* Table */}
-      <div className="flex flex-col gap-1 flex-1 max-w-xl">
+      <div className="flex flex-col gap-1 flex-1 max-w-xl min-w-50">
         <div className="grid grid-cols-3 bg-gray-700 text-white font-bold px-0 py-1 rounded grid-cols-[25%_25%_auto]">
           <div className="text-center cursor-pointer">Rank</div>
           <div className="text-center cursor-pointer">Team</div>
