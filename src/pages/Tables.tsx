@@ -4,6 +4,7 @@ import { EyeOff, Highlighter, Settings2 } from "lucide-react";
 import { useScoutingStore } from "../app/localDataStore";
 import { type StatRecord, type TeamStats, type ColumnPercentiles, numericColumns } from "../app/types";
 import HotReloadButton from "../components/HotReload";
+import SettingsButton from "../components/SettingsButton";
 
 // Fixed column order (used for Raw table view)
 const columnOrder = [
@@ -300,6 +301,7 @@ export default function Tables() {
                 )}
 
                 <HotReloadButton/>
+                <SettingsButton/>
 
             </main>
 

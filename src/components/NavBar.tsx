@@ -7,9 +7,9 @@ const links = [
   { name: "Tables", path: "/" },
   { name: "Ranks", path: "/ranks" },
   { name: "Teams", path: "/teams" },
-  { name: "Graph", path: "/graph" },
+  { name: "Compare", path: "/compare" },
   { name: "Pick List", path: "/picklist" },
-  { name: "Settings", path: "/settings" },
+  { name: "Simulate", path: "/simulate" },
 ];
 
 export default function Navbar() {

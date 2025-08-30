@@ -1,113 +1,10 @@
 import { create } from "zustand";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { numericColumns } from "./types";
+import { numericColumns, type ColumnPercentiles, type PitScoutingForm, type ScoutingForm, type StatboticsTeam, type StatRecord, type TbaData, type TeamStats } from "./types";
 
 export const TBA_KEY: string =
   "sBluV8DKQA0hTvJ2ABC9U3VDZunUGUSehxuDPvtNC8SQ3Q5XHvQVt0nm3X7cvP7j";
-
-export interface StatboticsTeam {
-  team: number;
-  year: number;
-  name: string;
-  country: string;
-  state: string;
-  district?: string | null;
-  rookie_year?: number;
-  epa?: {
-    total_points?: { [key: string]: number };
-    [key: string]: any;
-  };
-  record?: {
-    wins?: number;
-    losses?: number;
-    ties?: number;
-    count?: number;
-    winrate?: number;
-    [key: string]: any;
-  };
-  district_points?: number | null;
-  district_rank?: number | null;
-  competing?: {
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
-export interface PitScoutingForm {
-  id?: string;
-  teamNumber: number;
-  algaeDetails: string;
-  climbDetails: string;
-  driverExperience: string;
-  recentChanges: string;
-  [key: string]: any;
-}
-
-export interface ScoutingForm {
-  id?: string;
-  teamNumber: number;
-  matchNumber: number;
-  [key: string]: any;
-}
-
-export interface StatRecord {
-  max: number;
-  min: number;
-  median: number;
-  mean: number;
-  q3: number;
-}
-
-export interface TeamStats {
-  [column: string]: StatRecord;
-}
-
-export interface PercentileRecord {
-  p10: number;
-  p25: number;
-  p75: number;
-  p90: number;
-}
-
-export interface ColumnPercentiles {
-  [column: string]: {
-    min: PercentileRecord;
-    max: PercentileRecord;
-    median: PercentileRecord;
-    mean: PercentileRecord;
-    q3: PercentileRecord;
-  };
-}
-
-interface TbaData {
-  rankings: any[];
-  oprs: Record<string, number>;
-  matches: any[];
-}
-
-interface ScoutingState {
-  forms: ScoutingForm[];
-  pitForms: PitScoutingForm[];
-  teamStats: Record<number, TeamStats>;
-  columnPercentiles: ColumnPercentiles;
-  loading: boolean;
-  usePracticeData: boolean;
-  eventName: string;
-  eventKeys: any[];
-  tbaData: TbaData | null;
-  statboticsTeams: StatboticsTeam;
-  currentViewingTeam: number;
-  teamInfo: Record<number, { name: string; nickname: string }>;
-  teamImages: Record<number, string>;
-  loadTeamImages: () => Promise<void>;
-  setCurrentViewingTeam: (team: number) => void;
-  loadStatbotics: () => Promise<void>;
-  setEventName: (name: string) => void;
-  setUsePracticeData: (value: boolean) => void;
-  loadData: () => Promise<void>;
-  hotRefresh: () => Promise<void>;
-}
 
 /* ---------------- Helpers ---------------- */
 
@@ -275,6 +172,30 @@ async function loadStatboticsTeam(
   }
 }
 
+
+interface ScoutingState {
+  forms: ScoutingForm[];
+  pitForms: PitScoutingForm[];
+  teamStats: Record<number, TeamStats>;
+  columnPercentiles: ColumnPercentiles;
+  loading: boolean;
+  usePracticeData: boolean;
+  eventName: string;
+  eventKeys: any[];
+  tbaData: TbaData | null;
+  statboticsTeams: StatboticsTeam;
+  currentViewingTeam: number;
+  teamInfo: Record<number, { name: string; nickname: string }>;
+  teamImages: Record<number, string>;
+  loadTeamImages: () => Promise<void>;
+  setCurrentViewingTeam: (team: number) => void;
+  loadStatbotics: () => Promise<void>;
+  setEventName: (name: string) => void;
+  setUsePracticeData: (value: boolean) => void;
+  loadData: () => Promise<void>;
+  hotRefresh: () => Promise<void>;
+}
+
 /* ---------------- Store ---------------- */
 
 export const useScoutingStore = create<ScoutingState>((set, get) => ({
@@ -359,6 +280,8 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
       fetchPitForms(),
       fetchTbaData(get().eventName),
     ]);
+
+    console.log(tbaWrapped);
 
     const teamStats = computeTeamStats(formsData);
 

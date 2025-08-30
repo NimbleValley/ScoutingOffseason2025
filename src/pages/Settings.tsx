@@ -6,7 +6,7 @@ import HotReloadButton from "../components/HotReload";
 
 export default function Settings() {
 
-    const { teamStats, loading, loadData, eventName, setEventName, eventKeys, usePracticeData, setUsePracticeData } = useScoutingStore();
+    const { loading, loadData, eventName, setEventName, eventKeys, usePracticeData, setUsePracticeData } = useScoutingStore();
 
     useEffect(() => {
         loadData();

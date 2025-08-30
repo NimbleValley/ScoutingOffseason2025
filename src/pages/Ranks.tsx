@@ -5,6 +5,7 @@ import Navbar from "../components/NavBar";
 import TableWithChart from "../components/HorizontalBarChart";
 import CustomSelect from "../components/Select";
 import { numericColumns } from "../app/types";
+import SettingsButton from "../components/SettingsButton";
 
 interface ChartRow {
     team: string;
@@ -17,7 +18,7 @@ const formatCategory = (str: string) => {
 };
 
 export default function Ranks() {
-    const { teamStats, loading, loadData, loadStatbotics, statboticsTeams } = useScoutingStore();
+    const { teamStats, loading, loadData } = useScoutingStore();
 
     const [category, setCategory] = useState('totalPoints');
     const [valueType, setValueType] = useState<'min' | 'max' | 'q3' | 'mean' | 'median'>('median');
@@ -50,6 +51,7 @@ export default function Ranks() {
                     </div>
                 )}
                 <HotReloadButton />
+                <SettingsButton/>
             </main>
         </div>
     );

@@ -6,6 +6,11 @@ import CustomSelect from "../components/Select";
 import { SquarePlay } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import { numericColumns } from "../app/types";
+import VerticalBubbleChart from "../components/PercentileBarChart";
+import MultiCategoryBubbleChart from "../components/PercentileBarChart";
+import TeamPercentileBarChart from "../components/PercentileBarChart";
+import TeamPercentileBarChartVertical from "../components/PercentileBarChart";
+import SettingsButton from "../components/SettingsButton";
 
 export default function Teams() {
 
@@ -20,6 +25,7 @@ export default function Teams() {
         currentViewingTeam,
         setCurrentViewingTeam,
         tbaData,
+        pitForms
     } = useScoutingStore();
 
     useEffect(() => {
@@ -29,6 +35,8 @@ export default function Teams() {
 
     const imageUrl = teamImages[currentViewingTeam];
     const [selectedField, setSelectedField] = useState("totalPoints");
+
+    const [activeTab, setActiveTab] = useState<"comments" | "pitScout">("comments");
 
     // teamForms only computed when forms exist
     const teamForms = useMemo(() => {
@@ -41,13 +49,16 @@ export default function Teams() {
 
     // Prepare data for line chart
     const chartData = useMemo(() => {
-        console.log(teamForms)
         if (teamForms.length === 0) return [];
         return teamForms.map(f => ({
             match: f.matchNumber,
             value: Number(f[selectedField] ?? 0),
         }));
     }, [teamForms, selectedField]);
+
+    const getPitForm = useMemo(() => {
+        return pitForms.find(p => Number(p.teamNumber) === Number(currentViewingTeam));
+    }, [currentViewingTeam, pitForms]);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -80,7 +91,7 @@ export default function Teams() {
                         {/* Team stats card */}
                         <div className="bg-white shadow-md rounded-xl p-6 space-y-4">
                             <h2 className="text-2xl font-bold text-gray-800">
-                                Team {currentViewingTeam} - {teamInfo[currentViewingTeam].nickname ?? ''}
+                                Team {currentViewingTeam} - {teamInfo[currentViewingTeam]?.nickname ?? ''}
                             </h2>
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -161,21 +172,80 @@ export default function Teams() {
 
 
 
-                        {/* Comments Section */}
+                        {/* Comments + Pit Scout Unified Container */}
                         <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
-                            <h3 className="text-xl font-bold mb-4">Team Comments</h3>
-                            <div className="max-h-64 overflow-y-auto space-y-3 border border-gray-200 rounded p-3">
-                                {teamForms.length > 0 ? (
-                                    teamForms.filter(f => f.commentText).map(f => (
-                                        <div key={f.id} className="bg-gray-50 p-2 rounded">
-                                            <span className="font-semibold text-orange-600">Match {f.matchNumber}:</span>{" "}
-                                            <span className="text-gray-800">{f.commentText}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-gray-500">No comments available for this team.</div>
-                                )}
+                            {/* Pills Tabs */}
+                            <div className="flex gap-2 mb-4">
+                                <button
+                                    onClick={() => setActiveTab("comments")}
+                                    className={`px-4 py-2 rounded-full font-medium transition cursor-pointer ${activeTab === "comments"
+                                        ? "bg-orange-600 text-white shadow-sm"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    Comments
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab("pitScout")}
+                                    className={`px-4 py-2 rounded-full font-medium transition cursor-pointer ${activeTab === "pitScout"
+                                        ? "bg-orange-600 text-white shadow-sm"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    Pit Scouting
+                                </button>
                             </div>
+
+                            {/* Content */}
+                            {activeTab === "comments" && (
+                                <div>
+                                    <div className="max-h-64 overflow-y-auto space-y-3 border border-gray-200 rounded p-3">
+                                        {teamForms.length > 0 ? (
+                                            teamForms.filter(f => f.commentText).map(f => (
+                                                <div key={f.id} className="bg-gray-50 p-2 rounded">
+                                                    <span className="font-semibold text-orange-600">Match {f.matchNumber}:</span>{" "}
+                                                    <span className="text-gray-800">{f.commentText}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-gray-500">No comments available for this team.</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === "pitScout" && (
+                                getPitForm ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                            <p className="text-gray-500 text-sm">Algae Details</p>
+                                            <p className="text-lg font-medium text-gray-800">
+                                                {getPitForm.algaeDetails || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                            <p className="text-gray-500 text-sm">Climb Details</p>
+                                            <p className="text-lg font-medium text-gray-800">
+                                                {getPitForm.climbDetails || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                            <p className="text-gray-500 text-sm">Driver Experience</p>
+                                            <p className="text-lg font-medium text-gray-800">
+                                                {getPitForm.driverExperience || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                            <p className="text-gray-500 text-sm">Recent Changes</p>
+                                            <p className="text-lg font-medium text-gray-800">
+                                                {getPitForm.recentChanges || "N/A"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500">No pit scout data for this team.</p>
+                                )
+                            )}
                         </div>
 
 
@@ -345,10 +415,11 @@ export default function Teams() {
                         </div>
 
 
+                        <TeamPercentileBarChartVertical categories={["totalCoral","autoPoints","telePoints","endgamePoints", "totalCoral", "totalAlgae", "totalGamepieces"]} />
 
 
 
-
+                                    <div className="mb-30"></div>
 
 
 
@@ -359,6 +430,7 @@ export default function Teams() {
             </main >
 
             <HotReloadButton />
+            <SettingsButton/>
         </div >
     );
 }

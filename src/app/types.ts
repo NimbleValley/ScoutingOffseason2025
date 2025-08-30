@@ -1,10 +1,3 @@
-export interface ScoutingForm {
-  id?: string;
-  teamNumber: number;
-  matchNumber: number;
-  [key: string]: any;
-}
-
 export type StatRecord = {
   max: number;
   min: number;
@@ -33,6 +26,57 @@ export type ColumnPercentiles = {
     q3: PercentileRecord;
   };
 };
+
+export interface StatboticsTeam {
+  team: number;
+  year: number;
+  name: string;
+  country: string;
+  state: string;
+  district?: string | null;
+  rookie_year?: number;
+  epa?: {
+    total_points?: { [key: string]: number };
+    [key: string]: any;
+  };
+  record?: {
+    wins?: number;
+    losses?: number;
+    ties?: number;
+    count?: number;
+    winrate?: number;
+    [key: string]: any;
+  };
+  district_points?: number | null;
+  district_rank?: number | null;
+  competing?: {
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+export interface PitScoutingForm {
+  id?: string;
+  teamNumber: number;
+  algaeDetails: string;
+  climbDetails: string;
+  driverExperience: string;
+  recentChanges: string;
+  [key: string]: any;
+}
+
+export interface ScoutingForm {
+  id?: string;
+  teamNumber: number;
+  matchNumber: number;
+  [key: string]: any;
+}
+
+export interface TbaData {
+  rankings: any[];
+  oprs: Record<string, number>;
+  matches: any[];
+}
 
 export const numericColumns = [
     "teamNumber",

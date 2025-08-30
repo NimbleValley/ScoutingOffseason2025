@@ -1,4 +1,5 @@
 // src/firebase.ts
+import { getAI, GoogleAIBackend } from "firebase/ai";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
@@ -14,3 +15,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+// Initialize the Gemini Developer API backend service
+export const ai = getAI(app, { backend: new GoogleAIBackend() });

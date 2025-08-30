@@ -10,6 +10,7 @@ import ErrorPage from "./error-page";
 import Teams from "./pages/Teams";
 import Ranks from "./pages/Ranks";
 import Settings from "./pages/Settings";
+import CoScout from "./pages/CoScout";
 
 const router = createBrowserRouter([
   {
@@ -28,6 +29,10 @@ const router = createBrowserRouter([
   {
     path: "settings",
     element: <Settings />,
+  },
+  {
+    path: "coscout",
+    element: <CoScout />,
   },
 ]);
 
