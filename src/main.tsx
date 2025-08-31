@@ -16,7 +16,7 @@ import Match from "./pages/Match";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Tables/>,
+    element: <Tables />,
     errorElement: <ErrorPage />,
   },
   {
@@ -39,7 +39,9 @@ const router = createBrowserRouter([
     path: "match",
     element: <Match />,
   },
-]);
+],
+  { basename: "/ScoutingOffseason2025", }
+);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
