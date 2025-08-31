@@ -59,7 +59,7 @@ export default function Settings() {
         const context = [
             "Provide match analysis for each match. If it is completed then analyze how each team performed in a sentence or two and why one alliance won. If it is upcoming provide ideas for how each alliance can win and your prediction.",
             "Respond in a json format with 'match' concatenated with the number as the key followed by the output.",
-            "Make it concise, interesting to read as a quick overview for someone who missed the match and wants to know why one alliance won. you may add sarcastic humor or harsh criticism, be vocal but professional",
+            "Make it concise, interesting to read as a quick overview for someone who missed the match and wants to know why one alliance won. you may add critical feedback or sarcasm but be professional and not mean",
             "Scoring guide: auto : {l1: 3, l2: 4, l3: 6, l4: 7, leave: 3, algaenet:4, algaeProcessor:2}, tele : {l1: 2, l2:3, l3: 4, l4: 5, algaenet:4, algaeProcessor:2}, endgame: {deep climb: 12, park: 2, can only have one or the other}",
             "Only do qual matches, not playoff (f, sf, etc)",
             JSON.stringify(teamInfo),

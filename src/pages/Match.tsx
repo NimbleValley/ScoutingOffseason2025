@@ -3,7 +3,10 @@ import { useScoutingStore } from "../app/localDataStore";
 import HotReloadButton from "../components/HotReload";
 import Navbar from "../components/NavBar";
 import SettingsButton from "../components/SettingsButton";
-import { VideoIcon } from "lucide-react";
+import { BarChart, VideoIcon } from "lucide-react";
+import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar } from "recharts";
+import TeamPercentileBarChartHorizontal from "../components/HorizontalMatchBarChart";
+import TeamPercentileBarChartHorizontalStacked from "../components/HorizontalMatchBarChart";
 
 interface Match {
     key: string;
@@ -18,7 +21,7 @@ interface Match {
 }
 
 export default function Match() {
-    const { loadData, tbaData, eventName, aiMatches } = useScoutingStore();
+    const { loadData, tbaData, eventName, aiMatches, forms } = useScoutingStore();
     const [matches, setMatches] = useState<Match[]>([]);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [loadingMatches, setLoadingMatches] = useState(false);
@@ -150,7 +153,7 @@ export default function Match() {
                                     </button>
 
                                     {/* Expanded Details */}
-                                    <div className={`mt-2 border-t pt-2 text-md text-gray-600 space-y-1 overflow-y-auto transition-all duration-300 ${isExpanded ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+                                    <div className={`mt-2 border-t pt-2 text-md text-gray-600 space-y-1 overflow-y-auto transition-all duration-300 ${isExpanded ? "max-h-70 opacity-100" : "max-h-0 opacity-0"
                                         }`}>
                                         {match.time && (
                                             <div>
@@ -179,6 +182,11 @@ export default function Match() {
                                         ) : (
                                             <div>No videos yet</div>
                                         )}
+
+                                        {isExpanded &&
+                                            <TeamPercentileBarChartHorizontalStacked matchObject={match} />
+                                        }
+
 
                                         {(aiMatches['match' + match.match_number] && match.comp_level === "qm") &&
                                             <div className="mt-0 bg-white p-2">
