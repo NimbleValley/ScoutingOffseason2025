@@ -14,15 +14,21 @@ interface Message {
 
 export default function CoScout() {
 
-    const { loading, loadData, forms, tbaData, pitForms } = useScoutingStore();
+    const { loading, loadData, forms, tbaData, pitForms, teamInfo } = useScoutingStore();
 
     const [currentTextInput, setCurrentTextInput] = useState<string>('');
     const [messageThread, setMessageThread] = useState<Message[]>([{ message: 'Hi ai.', sender: 'you' }, { message: 'Hey human!', sender: 'ai' }]);
 
     const [thinking, setThinking] = useState<boolean>(false);
 
+    const generationConfig = {
+        temperature: 0.6,
+        topP: 0.1,
+        topK: 16,
+    };
+
     // Create a `GenerativeModel` instance with a model that supports your use case
-    const model = getGenerativeModel(ai, { model: "gemini-2.5-flash" });
+    const model = getGenerativeModel(ai, { model: "gemini-2.5-flash", generationConfig, systemInstruction:"You are a scouting assistant on team 3197, the hexhounds, competing in FRC robotics. give helpful tips that will help our team win, use insights from our data to answer questions" });
 
     // Wrap in an async function so you can use await
     async function sendMessage(message: string) {
@@ -35,16 +41,17 @@ export default function CoScout() {
         setMessageThread(prev => [...prev, { message: prompt, sender: 'you' }]);
 
         const context = [
-            "We are team 3197, the hexhounds, competing in FRC",
-            "For team names you can reference thebluealliance data supplied",
+            "For team names you can reference teamInfo nickname data supplied, favor totalPoints in our scouting data more than opr",
+            "If they ask about a team using its name, find its corresponding number in teamInfo and then answer",
             "Getting rank points help you improve rank. 3 for winning, 1 for 14+ points in endgame, 1 for auto mobility + 1 or more coral, and one for 4 levels with 5+ coral",
-            "Try to be as quick and concise as possible",
+            "Try to be as quick and concise as possible. don't write more than one or two paragraphs unless it asks for analysis",
             "Scoring guide: auto : {l1: 3, l2: 4, l3: 6, l4: 7, leave: 3, algaenet:4, algaeProcessor:2}, tele : {l1: 2, l2:3, l3: 4, l4: 5, algaenet:4, algaeProcessor:2}, endgame: {deep climb: 12, park: 2, can only have one or the other}",
             "Use scoring rules, team roles, and match strategies",
             prompt,
+            JSON.stringify(teamInfo),
             JSON.stringify(forms),
-            JSON.stringify(pitForms),
             JSON.stringify(tbaData),
+            JSON.stringify(pitForms),
         ];
 
         // To generate text output, call generateContent with the text input

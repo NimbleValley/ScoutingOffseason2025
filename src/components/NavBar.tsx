@@ -8,8 +8,8 @@ const links = [
   { name: "Ranks", path: "/ranks" },
   { name: "Teams", path: "/teams" },
   { name: "Compare", path: "/compare" },
+  { name: "Match", path: "/match" },
   { name: "Pick List", path: "/picklist" },
-  { name: "Simulate", path: "/simulate" },
 ];
 
 export default function Navbar() {
@@ -40,7 +40,7 @@ export default function Navbar() {
                 {isActive ? (
                   <span className="absolute inset-0 bg-orange-600 group-hover:bg-orange-800 transition duration-300 rounded"></span>
                 ) : (
-                  <span className="absolute inset-0 bg-orange-500 scale-y-0 origin-top group-hover:scale-y-100 transition duration-300 rounded"></span>
+                  <span className="absolute inset-0 bg-orange-600 scale-y-0 origin-top group-hover:scale-y-100 transition duration-300 rounded"></span>
                 )}
                 <span
                   className={`relative ${

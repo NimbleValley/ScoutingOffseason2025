@@ -11,6 +11,7 @@ import Teams from "./pages/Teams";
 import Ranks from "./pages/Ranks";
 import Settings from "./pages/Settings";
 import CoScout from "./pages/CoScout";
+import Match from "./pages/Match";
 
 const router = createBrowserRouter([
   {
@@ -33,6 +34,10 @@ const router = createBrowserRouter([
   {
     path: "coscout",
     element: <CoScout />,
+  },
+  {
+    path: "match",
+    element: <Match />,
   },
 ]);
 

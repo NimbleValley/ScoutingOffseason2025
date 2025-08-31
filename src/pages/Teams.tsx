@@ -25,6 +25,7 @@ export default function Teams() {
         currentViewingTeam,
         setCurrentViewingTeam,
         tbaData,
+        aiOverviews,
         pitForms
     } = useScoutingStore();
 
@@ -79,7 +80,7 @@ export default function Teams() {
                         </div>
 
                         {imageUrl && (
-                            <img src={imageUrl} alt={`Team ${currentViewingTeam}`} className="w-40 h-40 object-contain mb-3" />
+                            <img src={imageUrl} alt={`Team ${currentViewingTeam}`} className="w-40 h-40 object-contain mb-3 relative ml-auto" />
                         )
                         }
 
@@ -96,13 +97,13 @@ export default function Teams() {
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {/* Rank */}
-                                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Rank</p>
                                     <p className="text-lg font-semibold">{tbaData?.rankings?.find(r => r.team_key === `frc${currentViewingTeam}`)?.rank ?? 'N/A'}</p>
                                 </div>
 
                                 {/* Wins / Losses */}
-                                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Record</p>
                                     <p className="text-lg font-semibold">
                                         {tbaData?.rankings?.find(r => r.team_key === `frc${currentViewingTeam}`)?.record?.wins ?? 0}-
@@ -119,8 +120,8 @@ export default function Teams() {
                                     </p>
                                 </div>*/}
 
-                                {/* EPA */}
-                                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                {/* OPR */}
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">OPR</p>
                                     <p className="text-lg font-semibold">
                                         {Math.round((Number(tbaData?.oprs[`frc${currentViewingTeam}`]) ?? 0) * 10) / 10}
@@ -128,7 +129,7 @@ export default function Teams() {
                                 </div>
 
                                 {/* Q3 Points */}
-                                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Quartile 3 Points</p>
                                     <p className="text-lg font-semibold">
                                         {teamStats[currentViewingTeam]?.totalPoints?.q3 ?? 0}
@@ -136,22 +137,49 @@ export default function Teams() {
                                 </div>
 
                                 {/* Other stats (optional) */}
-                                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Auto Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.autoPoints?.mean ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.autoPoints?.q3 ?? 0 * 10}
                                     </p>
                                 </div>
 
-                                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Tele Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.telePoints?.mean ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.telePoints?.q3 ?? 0 * 10}
+                                    </p>
+                                </div>
+
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
+                                    <p className="text-gray-500 text-sm">Endgame Points</p>
+                                    <p className="text-lg font-semibold">
+                                        {teamStats[currentViewingTeam]?.endgamePoints?.q3 ?? 0 * 10}
+                                    </p>
+                                </div>
+
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
+                                    <p className="text-gray-500 text-sm">Total Gamepieces</p>
+                                    <p className="text-lg font-semibold">
+                                        {teamStats[currentViewingTeam]?.totalGamepieces?.q3 ?? 0 * 10}
+                                    </p>
+                                </div>
+
+                                <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
+                                    <p className="text-gray-500 text-sm">Max Algae Net</p>
+                                    <p className="text-lg font-semibold">
+                                        {teamStats[currentViewingTeam]?.teleNetCount?.max ?? 0 * 10}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
+                        { aiOverviews[currentViewingTeam] && 
+                            <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
+                                <h3 className="text-xl font-bold mb-4">CoScout Analysis</h3>
+                                <h5 className="text-md mb-4">{aiOverviews[currentViewingTeam]}</h5>
+                            </div>
+                        }
 
                         {/* Line graph */}
                         <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
@@ -164,8 +192,8 @@ export default function Teams() {
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="match" label={{ value: "Match", position: "insideBottom", offset: -5 }} />
                                     <YAxis />
-                                    <Tooltip animationDuration={50} />
-                                    <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} />
+                                    <Tooltip animationDuration={50} labelFormatter={(value) => `Match ${value}`} />
+                                    <Line type="monotone" dataKey="value" stroke="#d8aa84ff" strokeWidth={2} animationDuration={750} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -254,12 +282,12 @@ export default function Teams() {
                         <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
                             <h3 className="text-xl font-bold mb-4">Match Stats</h3>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full border border-gray-200 table-auto">
-                                    <thead className="bg-gray-100">
+                                <table className="min-w-full border border-gray-600 table-auto rounded-md">
+                                    <thead className="bg-gray-100 shadow-md">
                                         <tr>
-                                            <th className="px-4 py-2 border font-medium text-left">Match #</th>
+                                            <th className="px-2 py-1 border-y border-gray-600 font-medium text-center">Match #</th>
                                             {numericColumns.map((col) => (
-                                                <th key={col} className="px-4 py-2 border font-medium text-left">
+                                                <th key={col} className="px-4 py-0 border-y border-gray-600 font-medium text-sm min-w-20 text-center">
                                                     {col
                                                         .replace(/([A-Z])/g, " $1") // split camelCase
                                                         .replace(/^./, (str) => str.toUpperCase())} {/* Capitalize first letter */}
@@ -272,11 +300,11 @@ export default function Teams() {
                                             teamForms.map((f, idx) => (
                                                 <tr
                                                     key={f.id}
-                                                    className={idx % 2 === 0 ? "bg-gray-50 hover:bg-gray-100" : "hover:bg-gray-100"}
+                                                    className={idx % 3 === 2 ? "bg-gray-100 hover:bg-gray-200" : "hover:bg-gray-100"}
                                                 >
-                                                    <td className="px-4 py-2 border">{f.matchNumber}</td>
+                                                    <td className="px-4 py-2 border-y border-gray-600">{f.matchNumber}</td>
                                                     {numericColumns.map((col) => (
-                                                        <td key={col} className="px-4 py-2 border text-center">
+                                                        <td key={col} className="px-4 py-2 border-y border-gray-600 text-center">
                                                             {f[col] ?? 0}
                                                         </td>
                                                     ))}
@@ -415,11 +443,11 @@ export default function Teams() {
                         </div>
 
 
-                        <TeamPercentileBarChartVertical categories={["totalCoral","autoPoints","telePoints","endgamePoints", "totalCoral", "totalAlgae", "totalGamepieces"]} />
+                        <TeamPercentileBarChartVertical categories={["totalCoral", "autoPoints", "telePoints", "endgamePoints", "totalCoral", "totalAlgae", "totalGamepieces"]} />
 
 
 
-                                    <div className="mb-30"></div>
+                        <div className="mb-30"></div>
 
 
 
@@ -430,7 +458,7 @@ export default function Teams() {
             </main >
 
             <HotReloadButton />
-            <SettingsButton/>
+            <SettingsButton />
         </div >
     );
 }

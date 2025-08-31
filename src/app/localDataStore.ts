@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { numericColumns, type ColumnPercentiles, type PitScoutingForm, type ScoutingForm, type StatboticsTeam, type StatRecord, type TbaData, type TeamStats } from "./types";
 
@@ -172,6 +172,50 @@ async function loadStatboticsTeam(
   }
 }
 
+async function fetchAiOverviews(): Promise<Record<number, string>> {
+  const docRef = doc(db, "aiOverview", "overview");
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    console.warn("No AI overviews found");
+    return {};
+  }
+
+  const data = docSnap.data(); // { "1091": "...", "1228": "..." }
+  const overviews: Record<number, string> = {};
+
+  Object.entries(data).forEach(([teamStr, overview]) => {
+    const team = Number(teamStr);
+    if (!isNaN(team) && typeof overview === "string") {
+      overviews[team] = overview;
+    }
+  });
+
+  return overviews;
+}
+
+async function fetchAiMatches(): Promise<Record<string, string>> {
+  const docRef = doc(db, "aiOverview", "match");
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    console.warn("No AI matches found");
+    return {};
+  }
+
+  const data = docSnap.data();
+  const overviews: Record<string, string> = {};
+
+  Object.entries(data).forEach(([matchStr, overview]) => {
+    const number = String(matchStr);
+    if ( typeof overview === "string") {
+      overviews[number] = overview;
+    }
+  });
+
+  return overviews;
+}
+
 
 interface ScoutingState {
   forms: ScoutingForm[];
@@ -187,6 +231,8 @@ interface ScoutingState {
   currentViewingTeam: number;
   teamInfo: Record<number, { name: string; nickname: string }>;
   teamImages: Record<number, string>;
+  aiOverviews: Record<number, string>;
+  aiMatches: Record<string, string>;
   loadTeamImages: () => Promise<void>;
   setCurrentViewingTeam: (team: number) => void;
   loadStatbotics: () => Promise<void>;
@@ -207,6 +253,8 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
   eventKeys: [],
   tbaData: null,
   teamInfo: {},
+  aiOverviews: {},
+  aiMatches: {},
   eventName: localStorage.getItem("eventName") || "XX",
   currentViewingTeam: Number(
     localStorage.getItem("currentViewingTeam") || 3197
@@ -274,11 +322,13 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
     set({ loading: true });
     const year = new Date().getFullYear();
 
-    const [eventsData, formsData, pitFormsData, tbaWrapped] = await Promise.all([
+    const [eventsData, formsData, pitFormsData, tbaWrapped, aiOverviews, aiMatches] = await Promise.all([
       fetchEvents(year),
       fetchScoutForms(),
       fetchPitForms(),
       fetchTbaData(get().eventName),
+      fetchAiOverviews(),
+      fetchAiMatches(),
     ]);
 
     console.log(tbaWrapped);
@@ -306,17 +356,17 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
     }
 
     Object.keys(teamStats).forEach((teamStr) => {
-        const team = Number(teamStr);
-        if (!teamStats[team]["opr"]) {
-          teamStats[team]["opr"] = {
-            max: 0,
-            min: 0,
-            median: 0,
-            mean: 0,
-            q3: 0,
-          };
-        }
-      });
+      const team = Number(teamStr);
+      if (!teamStats[team]["opr"]) {
+        teamStats[team]["opr"] = {
+          max: 0,
+          min: 0,
+          median: 0,
+          mean: 0,
+          q3: 0,
+        };
+      }
+    });
 
     const columnPercentiles = computeColumnPercentiles(teamStats);
 
@@ -325,6 +375,8 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
       pitForms: pitFormsData,
       teamStats,
       columnPercentiles,
+      aiOverviews,
+      aiMatches,
       eventKeys: eventsData,
       tbaData: tbaWrapped?.tbaData ?? null,
       teamInfo: tbaWrapped?.teamInfo ?? {},

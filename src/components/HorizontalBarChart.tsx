@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { useScoutingStore } from "../app/localDataStore";
 
 interface ChartRow {
   team: string;
@@ -10,6 +11,8 @@ export default function TableWithChart({ data, category, show }: { data: ChartRo
 
   // Sort descending by default
   const sortedData = [...data].sort((a, b) => b.value - a.value);
+
+  const { setCurrentViewingTeam } = useScoutingStore();
 
   return (
     <div className="flex flex-row gap-0 w-full mb-10 justify-center">
@@ -26,7 +29,10 @@ export default function TableWithChart({ data, category, show }: { data: ChartRo
             className={`grid grid-cols-3 px-0 py-1 border-b border-gray-300 grid-cols-[25%_25%_auto] ${idx % 2 === 0 ? "bg-gray-100" : "bg-gray-200"}`}
           >
             <div className="text-center">{idx + 1}</div>
-            <div className="text-center">{row.team}</div>
+            <div className="text-center cursor-pointer hover:text-orange-500 hover:font-bold transition duartion-250" onClick={() => {
+              setCurrentViewingTeam(Number(row.team));
+              window.open('/teams', '_self');
+            }} >{row.team}</div>
             <div className="text-center">{row.value}</div>
           </div>
         ))}

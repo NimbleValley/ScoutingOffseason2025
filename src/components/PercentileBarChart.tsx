@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import { useScoutingStore } from "../app/localDataStore";
 
 interface Props {
@@ -37,12 +37,11 @@ const TeamPercentileBarChartVertical: React.FC<Props> = ({ categories }) => {
       <h3 className="text-lg font-semibold mb-3">Team Percentile Comparison</h3>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
-          <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="category" angle={-25} textAnchor="end" interval={0} />
           <YAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v.toFixed(0)}%`} />
           <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} animationDuration={50} />
           <Bar dataKey="value" fill="#f69f3bff" radius={[4, 4, 0, 0]} maxBarSize={50} animationDuration={500}>
-            <LabelList dataKey="value" position="top" formatter={(v: number) => `${v.toFixed(0)}%`} />
+            <LabelList dataKey="value" position="top" formatter={(v) => `${Number(v).toFixed(0)}%`} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
