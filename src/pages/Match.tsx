@@ -7,6 +7,7 @@ import { BarChart, VideoIcon } from "lucide-react";
 import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar } from "recharts";
 import TeamPercentileBarChartHorizontal from "../components/HorizontalMatchBarChart";
 import TeamPercentileBarChartHorizontalStacked from "../components/HorizontalMatchBarChart";
+import CustomSelect from "../components/Select";
 
 interface Match {
     key: string;
@@ -21,10 +22,16 @@ interface Match {
 }
 
 export default function Match() {
-    const { loadData, tbaData, eventName, aiMatches, forms } = useScoutingStore();
+    const { loadData, tbaData, eventName, aiMatches, forms, teamStats } = useScoutingStore();
     const [matches, setMatches] = useState<Match[]>([]);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [loadingMatches, setLoadingMatches] = useState(false);
+
+    const [viewingMode, setViewingMode] = useState<'All' | 'Team' | 'Hypothetical'>('All');
+    const [viewingTeam, setViewingTeam] = useState<number>(-1);
+
+    const VIEWING_KEY = 'viewingModeMatches';
+    const TEAM_KEY = 'viewingTeamMatches';
 
     // Build quick lookup for team ranks if available
     const teamRanks: Record<string, number> = {};
@@ -61,12 +68,24 @@ export default function Match() {
                     Matches for Event: {eventName}
                 </h2>
 
+                <CustomSelect view={viewingMode} setView={setViewingMode} label={"View: "} options={['All', 'Team', 'Hypothetical']} />
+
+                {viewingMode == 'Team' && (
+                    <div className="mt-4">
+                        <CustomSelect view={viewingTeam} setView={setViewingTeam} label={"Viewing team: "} options={Object.keys(teamStats).map(Number)} />
+                    </div>
+                )}
+
+                <div className="h-10"></div>
+
                 {/* Matches */}
                 {loadingMatches ? (
                     <div className="text-orange-500 text-center">Loading matches...</div>
                 ) : (
                     <div className="flex flex-col gap-2">
-                        {matches.map((match) => {
+                        {matches.filter((item) => {
+                            return viewingMode == 'All' || [...item.alliances.red.team_keys.map((t) => {return t.replace("frc", "");}), ...item.alliances.blue.team_keys.map((t) => {return t.replace("frc", "");})].includes(String(viewingTeam))
+                         }).map((match) => {
                             const { red, blue } = match.alliances;
                             const winner =
                                 red.score != null && blue.score != null
