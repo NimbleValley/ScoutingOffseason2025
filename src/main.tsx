@@ -12,6 +12,7 @@ import Ranks from "./pages/Ranks";
 import Settings from "./pages/Settings";
 import CoScout from "./pages/CoScout";
 import Match from "./pages/Match";
+import Picklist from "./pages/Picklist";
 
 const router = createBrowserRouter([
   {
@@ -38,6 +39,10 @@ const router = createBrowserRouter([
   {
     path: "match",
     element: <Match />,
+  },
+  {
+    path: "picklist",
+    element: <Picklist />,
   },
 ],
   { basename: "/ScoutingOffseason2025", }

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+src/firebase.ts
+src/supabase.ts
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

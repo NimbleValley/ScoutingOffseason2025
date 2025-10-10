@@ -57,7 +57,7 @@ export default function Navbar() {
           {/* Coscout button */}
           <Link
             to="/coscout"
-            className="relative text-orange-400 px-3 py-2 rounded group overflow-hidden font-medium text-xl"
+            className="hidden relative text-orange-400 px-3 py-2 rounded group overflow-hidden font-medium text-xl"
           >
             <span className="absolute inset-0 bg-gray-500 scale-y-0 origin-top group-hover:scale-y-100 transition duration-300 rounded"></span>
             <BotMessageSquare

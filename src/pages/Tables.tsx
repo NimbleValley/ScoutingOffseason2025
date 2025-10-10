@@ -71,6 +71,8 @@ const viewComment = (comment: string) => {
     alert(comment || "No comment");
 };
 
+const VALUE_TYPE_KEY = 'tableTeamValueType';
+
 export default function Tables() {
 
     const { forms, teamStats, loading, columnPercentiles, loadData } = useScoutingStore();
@@ -82,16 +84,20 @@ export default function Tables() {
     const [tableType, setTableType] = useState<"Raw" | "Team">("Team");
     const [teamValueType, setTeamValueType] = useState<
         "Min" | "Max" | "Median" | "Mean" | "Q3"
-    >("Median");
+    >(sessionStorage.getItem(VALUE_TYPE_KEY) as "Min" | "Max" | "Median" | "Mean" | "Q3" ?? "Median");
 
     const [showHighlight, setShowHighlight] = useState<Boolean>(true);
     const [showControls, setShowControls] = useState<Boolean>(true);
-    const [rowHighlight, setRowHighlight] = useState<Number>(-1);
+    const [rowHighlightTeam, setRowHighlightTeam] = useState<Number>(-1);
 
     const [sortConfig, setSortConfig] = useState<{ column: string | null; direction: 'asc' | 'desc' | null }>({
         column: null,
         direction: null,
     });
+
+    useEffect(() => {
+        sessionStorage.setItem(VALUE_TYPE_KEY, teamValueType)
+    }, [teamValueType])
 
     const handleSort = (column: string) => {
         setSortConfig((prev) => {
@@ -192,7 +198,7 @@ export default function Tables() {
                                     {(tableType === "Raw" ? columnOrder : numericColumns).map((col) => (
                                         <th
                                             key={col}
-                                            onClick={() => { setRowHighlight(-1); handleSort(col) }}
+                                            onClick={() => {  handleSort(col); }}
                                             className={` border-t-1 border-b-1 border-gray-300 px-3 py-2 text-center whitespace-nowrap cursor-pointer select-none hover:bg-gray-300 transition duration-250 ${sortConfig.column === col ? 'bg-orange-400' : ''}`}
                                         >
                                             {formatHeader(col)}
@@ -248,12 +254,12 @@ export default function Tables() {
                                             <tr
                                                 key={teamNumber}
                                                 className={
-                                                    `${(index + 1) % 3 === 0 && rowHighlight !== index
+                                                    `${(index + 1) % 3 === 0 && rowHighlightTeam !== statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord]
                                                         ? "bg-gray-200 hover:bg-gray-300"
-                                                        : "hover:bg-gray-100"} ${rowHighlight === index ? "bg-orange-300 hover:bg-orange-400" : ""} transition duration-250`
+                                                        : "hover:bg-gray-100"} ${rowHighlightTeam == statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord] ? "bg-orange-300 hover:bg-orange-400" : ""} transition duration-250`
                                                 }
                                                 onClick={
-                                                    () => setRowHighlight(prev => prev === index ? -1 : index)
+                                                    () => setRowHighlightTeam(prev => prev === statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord] ? -1 : statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord])
                                                 }
                                             >
                                                 {numericColumns.map((col) => {
@@ -300,8 +306,8 @@ export default function Tables() {
                     </div>
                 )}
 
-                <HotReloadButton/>
-                <SettingsButton/>
+                <HotReloadButton />
+                <SettingsButton />
 
             </main>
 
