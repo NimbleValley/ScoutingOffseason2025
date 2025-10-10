@@ -2,69 +2,36 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/NavBar";
 import { EyeOff, Highlighter, Settings2 } from "lucide-react";
 import { useScoutingStore } from "../app/localDataStore";
-import { type StatRecord, type TeamStats, type ColumnPercentiles, numericColumns } from "../app/types";
+import { type StatRecord, type TeamStats, type ColumnPercentiles, type LiveDataRowWithOPR, numericColumns, type LiveDataKeyWithOPR, columnOrder } from "../app/types";
 import HotReloadButton from "../components/HotReload";
 import SettingsButton from "../components/SettingsButton";
+import type { Database } from "../supabasetypes";
 
-// Fixed column order (used for Raw table view)
-const columnOrder = [
-    "teamNumber",
-    "matchNumber",
-    "selectedStation",
-    "totalPoints",
-    "autoPoints",
-    "telePoints",
-    "endgamePoints",
-    "autoCoral",
-    "teleCoral",
-    "totalCoral",
-    "totalAlgae",
-    "totalGamepieces",
-    "leave",
-    "autoNetCount",
-    "autoMissNetCount",
-    "autoProcessorCount",
-    "autoL4Count",
-    "autoL3Count",
-    "autoL2Count",
-    "autoL1Count",
-    "autoMissCoralCount",
-    "teleNetCount",
-    "teleMissNetCount",
-    "teleProcessorCount",
-    "teleL4Count",
-    "teleL3Count",
-    "teleL2Count",
-    "teleL1Count",
-    "teleMissCoralCount",
-    "park",
-    "selectedClimb",
-    "commentText",
-    "lostComms",
-    "selectedStartPosition",
-    "driverSkill",
-    "disabled",
-];
+type LiveDataRow = Database["public"]["Tables"]["Live Data"]["Row"];
 
 // Columns that will get percentile-based highlighting
-const percentileColumns = [
+const percentileColumns: LiveDataKeyWithOPR[] = [
     "opr",
-    "totalPoints",
-    "autoPoints",
-    "telePoints",
-    "endgamePoints",
-    "autoCoral",
-    "teleCoral",
-    "totalCoral",
-    "totalAlgae",
-    "totalGamepieces",
-    "teleNetCount",
+    "total_points",
+    "auto_points",
+    "tele_points",
+    "endgame_points",
+    "total_coral",
+    "total_algae",
+    "total_gamepieces",
+    "tele_made_net",
 ];
 
 // Utility to convert camelCase to Normal Case
 const formatHeader = (str: string) => {
-    const result = str.replace(/([A-Z])/g, " $1");
-    return result.charAt(0).toUpperCase() + result.slice(1);
+    // Replace underscores with spaces
+    let result = str.replace(/_/g, " ");
+    // Add space before uppercase letters (optional, in case of camelCase too)
+    result = result.replace(/([A-Z])/g, " $1");
+    // Capitalize first letter of the string
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    // Replace multiple spaces with a single space
+    return result.replace(/\s+/g, " ").trim();
 };
 
 const viewComment = (comment: string) => {
@@ -119,7 +86,7 @@ export default function Tables() {
             let valB = b[config.column ?? 0] ?? 0;
 
             // Force numeric sort for teamNumber and matchNumber
-            if (config.column === "teamNumber" || config.column === "matchNumber") {
+            if (config.column === "team_number" || config.column === "match_number") {
                 valA = Number(valA);
                 valB = Number(valB);
             }
@@ -198,7 +165,7 @@ export default function Tables() {
                                     {(tableType === "Raw" ? columnOrder : numericColumns).map((col) => (
                                         <th
                                             key={col}
-                                            onClick={() => {  handleSort(col); }}
+                                            onClick={() => { handleSort(col); }}
                                             className={` border-t-1 border-b-1 border-gray-300 px-3 py-2 text-center whitespace-nowrap cursor-pointer select-none hover:bg-gray-300 transition duration-250 ${sortConfig.column === col ? 'bg-orange-400' : ''}`}
                                         >
                                             {formatHeader(col)}
@@ -227,7 +194,7 @@ export default function Tables() {
                                                     key={col}
                                                     className="border border-gray-300 px-3 py-2"
                                                 >
-                                                    {col === "commentText" ? (
+                                                    {col === "comments" ? (
                                                         <button
                                                             onClick={() => viewComment(form[col])}
                                                             className="px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 transition"
@@ -254,15 +221,16 @@ export default function Tables() {
                                             <tr
                                                 key={teamNumber}
                                                 className={
-                                                    `${(index + 1) % 3 === 0 && rowHighlightTeam !== statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord]
+                                                    `${(index + 1) % 3 === 0 && rowHighlightTeam !== statObj['team_number'][teamValueType.toLowerCase() as keyof StatRecord]
                                                         ? "bg-gray-200 hover:bg-gray-300"
-                                                        : "hover:bg-gray-100"} ${rowHighlightTeam == statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord] ? "bg-orange-300 hover:bg-orange-400" : ""} transition duration-250`
+                                                        : "hover:bg-gray-100"} ${rowHighlightTeam == statObj['team_number'][teamValueType.toLowerCase() as keyof StatRecord] ? "bg-orange-300 hover:bg-orange-400" : ""} transition duration-250`
                                                 }
                                                 onClick={
-                                                    () => setRowHighlightTeam(prev => prev === statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord] ? -1 : statObj['teamNumber'][teamValueType.toLowerCase() as keyof StatRecord])
+                                                    () => setRowHighlightTeam(prev => prev === statObj['team_number'][teamValueType.toLowerCase() as keyof StatRecord] ? -1 : statObj['team_number'][teamValueType.toLowerCase() as keyof StatRecord])
                                                 }
                                             >
                                                 {numericColumns.map((col) => {
+                                                    console.error(statObj[col] + ", " + col)
                                                     const value =
                                                         statObj[col][
                                                         teamValueType.toLowerCase() as keyof StatRecord

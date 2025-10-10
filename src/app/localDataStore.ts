@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { numericColumns, type ColumnPercentiles, type PitScoutingForm, type ScoutingForm, type StatboticsTeam, type StatRecord, type TbaData, type TeamStats } from "./types";
+import { numericColumns, type ColumnPercentiles, type LiveDataNumberKeysWithOPR, type LiveDataRowWithOPR, type PitScoutingForm, type StatboticsTeam, type StatRecord, type TbaData, type TeamStats } from "./types";
+import { supabase } from "../supabase";
+import type { Database } from "../supabasetypes";
 
 export const TBA_KEY: string =
   "sBluV8DKQA0hTvJ2ABC9U3VDZunUGUSehxuDPvtNC8SQ3Q5XHvQVt0nm3X7cvP7j";
@@ -28,28 +30,46 @@ function computeStats(values: number[]): StatRecord {
   return { max, min, median, mean, q3 };
 }
 
-function computeTeamStats(forms: ScoutingForm[]): Record<number, TeamStats> {
-  const grouped: Record<number, ScoutingForm[]> = {};
-  forms.forEach((f) => {
-    if (!grouped[f.teamNumber]) grouped[f.teamNumber] = [];
-    grouped[f.teamNumber].push(f);
-  });
+function computeTeamStats(
+  forms: LiveDataRowWithOPR[]
+): Record<number, TeamStats> {
+  // Group rows by team_number
+  const grouped = forms.reduce<Record<number, LiveDataRowWithOPR[]>>((acc, row) => {
+    if (!acc[row.team_number]) acc[row.team_number] = [];
+    acc[row.team_number].push(row);
+    return acc;
+  }, {});
 
   const stats: Record<number, TeamStats> = {};
-  Object.entries(grouped).forEach(([team, data]) => {
-    stats[+team] = {};
-    numericColumns.forEach((col) => {
-      const vals = data.map((d) => Number(d[col] ?? 0));
-      stats[+team][col] = computeStats(vals);
-    });
-  });
+
+  for (const [teamStr, rows] of Object.entries(grouped)) {
+    const team = Number(teamStr);
+    const teamStats = {} as TeamStats;
+
+    (Object.keys(rows[0]) as (keyof LiveDataRowWithOPR)[])
+      .filter((key): key is LiveDataNumberKeysWithOPR => {
+        const val = rows[0][key];
+        return typeof val === "number" || val === null;
+      })
+      .forEach((col) => {
+        const values = rows
+          .map((r) => (typeof r[col] === "number" ? (r[col] as number) : 0))
+          .filter((v) => !isNaN(v));
+
+        teamStats[col] = computeStats(values);
+      });
+
+    stats[team] = teamStats;
+  }
+
   return stats;
 }
 
 function computeColumnPercentiles(
   teamStats: Record<number, TeamStats>
 ): ColumnPercentiles {
-  function getPercentile(values: number[], p: number) {
+  console.error(teamStats)
+  function getPercentile(values: number[], p: number): number {
     if (!values.length) return 0;
     const idx = (p / 100) * (values.length - 1);
     const lower = Math.floor(idx);
@@ -59,21 +79,44 @@ function computeColumnPercentiles(
   }
 
   const result: ColumnPercentiles = {};
-  numericColumns.forEach((col) => {
-    result[col] = {} as any;
-    (["min", "max", "median", "mean", "q3"] as const).forEach((statType) => {
-      const values = Object.values(teamStats).map((s) => s[col][statType]);
-      values.sort((a, b) => a - b);
+
+  for (const col of numericColumns) {
+    // Skip columns that don't exist on any team
+    const hasValues = Object.values(teamStats).some(
+      (team) => team[col] !== undefined
+    );
+    if (!hasValues) continue;
+
+    result[col] = {
+      min: { p10: 0, p25: 0, p75: 0, p90: 0 },
+      max: { p10: 0, p25: 0, p75: 0, p90: 0 },
+      median: { p10: 0, p25: 0, p75: 0, p90: 0 },
+      mean: { p10: 0, p25: 0, p75: 0, p90: 0 },
+      q3: { p10: 0, p25: 0, p75: 0, p90: 0 },
+    };
+
+    const statTypes = ["min", "max", "median", "mean", "q3"] as const;
+
+    for (const statType of statTypes) {
+      const values = Object.values(teamStats)
+        .map((team) => team[col]?.[statType] ?? 0)
+        .filter((v) => typeof v === "number" && !isNaN(v))
+        .sort((a, b) => a - b);
+
       result[col][statType] = {
         p10: getPercentile(values, 10),
         p25: getPercentile(values, 25),
         p75: getPercentile(values, 75),
         p90: getPercentile(values, 90),
       };
-    });
-  });
+    }
+  }
+
+  console.log(result)
+
   return result;
 }
+
 
 async function fetchEvents(year: number) {
   try {
@@ -88,14 +131,6 @@ async function fetchEvents(year: number) {
     console.error("Failed fetching events", err);
     return [];
   }
-}
-
-async function fetchScoutForms(): Promise<ScoutingForm[]> {
-  const querySnapshot = await getDocs(collection(db, "scoutingForms"));
-  return querySnapshot.docs
-    .map((doc) => ({ id: doc.id, matchNumber: Number(doc.data().matchNumber), teamNumber: Number(doc.data().teamNumber), ...doc.data() }))
-    .filter((f) => f.teamNumber !== -1)
-    .sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
 }
 
 async function fetchPitForms(): Promise<PitScoutingForm[]> {
@@ -208,7 +243,7 @@ async function fetchAiMatches(): Promise<Record<string, string>> {
 
   Object.entries(data).forEach(([matchStr, overview]) => {
     const number = String(matchStr);
-    if ( typeof overview === "string") {
+    if (typeof overview === "string") {
       overviews[number] = overview;
     }
   });
@@ -218,7 +253,7 @@ async function fetchAiMatches(): Promise<Record<string, string>> {
 
 
 interface ScoutingState {
-  forms: ScoutingForm[];
+  forms: LiveDataRowWithOPR[];
   pitForms: PitScoutingForm[];
   teamStats: Record<number, TeamStats>;
   columnPercentiles: ColumnPercentiles;
@@ -324,16 +359,17 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
 
     const [eventsData, formsData, pitFormsData, tbaWrapped, aiOverviews, aiMatches] = await Promise.all([
       fetchEvents(year),
-      fetchScoutForms(),
+      fetchRowsSupabase(),
       fetchPitForms(),
       fetchTbaData(get().eventName),
       fetchAiOverviews(),
       fetchAiMatches(),
     ]);
 
-    console.log(tbaWrapped);
-
-    const teamStats = computeTeamStats(formsData);
+    console.log(formsData);
+    
+    const teamStats = computeTeamStats(formsData as LiveDataRowWithOPR[]);
+    console.log(teamStats);
 
     // Inject OPR into teamStats
     if (tbaWrapped?.tbaData?.oprs) {
@@ -370,6 +406,8 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
 
     const columnPercentiles = computeColumnPercentiles(teamStats);
 
+    console.warn(columnPercentiles)
+
     set({
       forms: formsData,
       pitForms: pitFormsData,
@@ -384,3 +422,17 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
     });
   },
 }));
+
+const fetchRowsSupabase = async (): Promise<LiveDataRowWithOPR[]> => {
+  const { data, error } = await supabase
+    .from("Live Data")
+    .select("*");
+
+  if (!data) return [];
+
+  // Add default OPR (could come from TBA / statbotics later)
+  return data.map((row) => ({
+    ...row,
+    opr: row.opr ?? 0,
+  }));
+};

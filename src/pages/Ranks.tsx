@@ -4,8 +4,8 @@ import HotReloadButton from "../components/HotReload";
 import Navbar from "../components/NavBar";
 import TableWithChart from "../components/RankChart";
 import CustomSelect from "../components/Select";
-import { numericColumns } from "../app/types";
 import SettingsButton from "../components/SettingsButton";
+import { numericColumns } from "../app/types";
 
 interface ChartRow {
     team: string;
@@ -20,7 +20,7 @@ const formatCategory = (str: string) => {
 export default function Ranks() {
     const { teamStats, loading, loadData } = useScoutingStore();
 
-    const [category, setCategory] = useState('totalPoints');
+    const [category, setCategory] = useState('total_points');
     const [valueType, setValueType] = useState<'min' | 'max' | 'q3' | 'mean' | 'median'>('median');
     const [showGraph, setShowGraph] = useState<boolean>(true);
 
@@ -42,7 +42,7 @@ export default function Ranks() {
                 ) : (
                     <div>
                         <div className="flex flex-col lg:flex-row gap-5">
-                            <CustomSelect view={category} setView={setCategory} label={'Category:'} options={numericColumns.filter((value) => value != 'teamNumber')}></CustomSelect>
+                            <CustomSelect view={category} setView={setCategory} label={'Category:'} options={numericColumns.filter((value) => value != 'team_number')}></CustomSelect>
                             <CustomSelect view={valueType} setView={setValueType} label={'Type:'} options={['min', 'mean', 'median', 'q3', 'max',]}></CustomSelect>
                             <CustomSelect view={showGraph} setView={(v: string | boolean) => setShowGraph(v === true || v === 'true')} label={'Show graph:'} options={[true, false]}></CustomSelect>
                         </div>

@@ -1,3 +1,5 @@
+import type { Database } from "../supabasetypes";
+
 export type StatRecord = {
   max: number;
   min: number;
@@ -7,7 +9,7 @@ export type StatRecord = {
 };
 
 export type TeamStats = {
-  [column: string]: StatRecord;
+  [K in LiveDataNumberKeysWithOPR]: StatRecord;
 };
 
 export type PercentileRecord = {
@@ -65,45 +67,89 @@ export interface PitScoutingForm {
   [key: string]: any;
 }
 
-export interface ScoutingForm {
-  id?: string;
-  teamNumber: number;
-  matchNumber: number;
-  [key: string]: any;
-}
-
 export interface TbaData {
   rankings: any[];
   oprs: Record<string, number>;
   matches: any[];
 }
 
-export const numericColumns = [
-    "teamNumber",
+export type LiveDataRow = Database["public"]["Tables"]["Live Data"]["Row"];
+
+export type LiveDataRowWithOPR = Database["public"]["Tables"]["Live Data"]["Row"] & {
+  opr: number;
+};
+
+export type NumericKeys<T> = {
+  [K in keyof T]: NonNullable<T[K]> extends number ? K : never
+}[keyof T];
+
+export type LiveDataNumberKeys = NumericKeys<LiveDataRow>;
+export type LiveDataNumberKeysWithOPR = NumericKeys<LiveDataRowWithOPR>;
+
+export type LiveDataKey = keyof LiveDataRow;
+export type LiveDataKeyWithOPR = keyof LiveDataRowWithOPR;
+
+export const numericColumns: LiveDataKeyWithOPR[] = [
+  "opr",
+  "total_points",
+  "auto_points",
+  "tele_points",
+  "endgame_points",
+  "total_coral",
+  "total_algae",
+  "total_gamepieces",
+  "auto_made_net",
+  "auto_missed_net",
+  "auto_made_processor",
+  "auto_l4",
+  "auto_l3",
+  "auto_l2",
+  "auto_l1",
+  "auto_missed_coral",
+  "tele_made_net",
+  "tele_missed_net",
+  "tele_processor",
+  "tele_l4",
+  "tele_l3",
+  "tele_l2",
+  "tele_l1",
+  "tele_missed_coral",
+  "driver_rating",
+];
+
+export const columnOrder: LiveDataKeyWithOPR[] = [
     "opr",
-    "totalPoints",
-    "autoPoints",
-    "telePoints",
-    "endgamePoints",
-    "autoCoral",
-    "teleCoral",
-    "totalCoral",
-    "totalAlgae",
-    "totalGamepieces",
-    "autoNetCount",
-    "autoMissNetCount",
-    "autoProcessorCount",
-    "autoL4Count",
-    "autoL3Count",
-    "autoL2Count",
-    "autoL1Count",
-    "autoMissCoralCount",
-    "teleNetCount",
-    "teleMissNetCount",
-    "teleProcessorCount",
-    "teleL4Count",
-    "teleL3Count",
-    "teleL2Count",
-    "teleL1Count",
-    "teleMissCoralCount",
+    "team_number",
+    "match_number",
+    "driver_station",
+    "total_points",
+    "auto_points",
+    "tele_points",
+    "endgame_points",
+    "total_coral",
+    "total_algae",
+    "total_gamepieces",
+    "auto_mobility",
+    "auto_made_net",
+    "auto_missed_net",
+    "auto_made_processor",
+    "auto_l4",
+    "auto_l3",
+    "auto_l2",
+    "auto_l1",
+    "auto_missed_coral",
+    "tele_made_net",
+    "tele_missed_net",
+    "tele_processor",
+    "tele_l4",
+    "tele_l3",
+    "tele_l2",
+    "tele_l1",
+    "tele_missed_coral",
+    "endgame_type",
+    "comments",
+    "lost_comms",
+    "auto_start_position",
+    "driver_rating",
+    "disabled",
 ];

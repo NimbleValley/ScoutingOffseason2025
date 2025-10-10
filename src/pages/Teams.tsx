@@ -5,7 +5,7 @@ import HotReloadButton from "../components/HotReload";
 import CustomSelect from "../components/Select";
 import { SquarePlay } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
-import { numericColumns } from "../app/types";
+import { numericColumns, type LiveDataNumberKeysWithOPR } from "../app/types";
 import VerticalBubbleChart from "../components/PercentileBarChart";
 import MultiCategoryBubbleChart from "../components/PercentileBarChart";
 import TeamPercentileBarChart from "../components/PercentileBarChart";
@@ -35,16 +35,29 @@ export default function Teams() {
     }, []);
 
     const imageUrl = teamImages[currentViewingTeam];
-    const [selectedField, setSelectedField] = useState("totalPoints");
+    const [selectedField, setSelectedField] = useState<LiveDataNumberKeysWithOPR>("total_points");
 
     const [activeTab, setActiveTab] = useState<"comments" | "pitScout">("comments");
 
+    // Utility to convert camelCase to Normal Case
+    const formatHeader = (str: string) => {
+        // Replace underscores with spaces
+        let result = str.replace(/_/g, " ");
+        // Add space before uppercase letters (optional, in case of camelCase too)
+        result = result.replace(/([A-Z])/g, " $1");
+        // Capitalize first letter of the string
+        result = result.charAt(0).toUpperCase() + result.slice(1);
+        // Replace multiple spaces with a single space
+        return result.replace(/\s+/g, " ").trim();
+    };
+
     // teamForms only computed when forms exist
     const teamForms = useMemo(() => {
+        console.log(forms)
         if (!forms || forms.length === 0) return [];
         return forms
-            .filter(f => Number(f.teamNumber) === Number(currentViewingTeam))
-            .sort((a, b) => (a.matchNumber ?? 0) - (b.matchNumber ?? 0));
+            .filter(f => Number(f.team_number) === Number(currentViewingTeam))
+            .sort((a, b) => (a.match_number ?? 0) - (b.match_number ?? 0));
     }, [forms, currentViewingTeam]);
 
 
@@ -52,7 +65,7 @@ export default function Teams() {
     const chartData = useMemo(() => {
         if (teamForms.length === 0) return [];
         return teamForms.map(f => ({
-            match: f.matchNumber,
+            match: f.match_number,
             value: Number(f[selectedField] ?? 0),
         }));
     }, [teamForms, selectedField]);
@@ -132,7 +145,7 @@ export default function Teams() {
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Quartile 3 Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.totalPoints?.q3 ?? 0}
+                                        {teamStats[currentViewingTeam]['total_points'].q3 ?? 0}
                                     </p>
                                 </div>
 
@@ -140,41 +153,41 @@ export default function Teams() {
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Auto Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.autoPoints?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.auto_points?.q3 ?? 0 * 10}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Tele Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.telePoints?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.tele_points?.q3 ?? 0 * 10}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Endgame Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.endgamePoints?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.endgame_points?.q3 ?? 0 * 10}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Total Gamepieces</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.totalGamepieces?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.total_gamepieces?.q3 ?? 0 * 10}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Max Algae Net</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.teleNetCount?.max ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.tele_made_net?.max ?? 0 * 10}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        { aiOverviews[currentViewingTeam] && 
+                        {aiOverviews[currentViewingTeam] &&
                             <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
                                 <h3 className="text-xl font-bold mb-4">CoScout Analysis</h3>
                                 <h5 className="text-md mb-4">{aiOverviews[currentViewingTeam]}</h5>
@@ -185,7 +198,7 @@ export default function Teams() {
                         <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
                             <h3 className="text-xl font-bold mb-4">Consistency Graph</h3>
                             <div className="mb-4">
-                                <CustomSelect view={selectedField} setView={setSelectedField} label={'Field: '} options={numericColumns.filter(c => c !== "teamNumber")}></CustomSelect>
+                                <CustomSelect view={selectedField} setView={setSelectedField} label={'Field: '} options={numericColumns.filter(c => c !== "team_number")}></CustomSelect>
                             </div>
                             <ResponsiveContainer width="100%" height={300}>
                                 <LineChart data={chartData}>
@@ -229,10 +242,10 @@ export default function Teams() {
                                 <div>
                                     <div className="max-h-64 overflow-y-auto space-y-3 border border-gray-200 rounded p-3">
                                         {teamForms.length > 0 ? (
-                                            teamForms.filter(f => f.commentText).map(f => (
+                                            teamForms.filter(f => f.comments).map(f => (
                                                 <div key={f.id} className="bg-gray-50 p-2 rounded">
-                                                    <span className="font-semibold text-orange-600">Match {f.matchNumber}:</span>{" "}
-                                                    <span className="text-gray-800">{f.commentText}</span>
+                                                    <span className="font-semibold text-orange-600">Match {f.match_number}:</span>{" "}
+                                                    <span className="text-gray-800">{f.comments}</span>
                                                 </div>
                                             ))
                                         ) : (
@@ -288,9 +301,7 @@ export default function Teams() {
                                             <th className="px-2 py-1 border-y border-gray-600 font-medium text-center">Match #</th>
                                             {numericColumns.map((col) => (
                                                 <th key={col} className="px-4 py-0 border-y border-gray-600 font-medium text-sm min-w-20 text-center">
-                                                    {col
-                                                        .replace(/([A-Z])/g, " $1") // split camelCase
-                                                        .replace(/^./, (str) => str.toUpperCase())} {/* Capitalize first letter */}
+                                                    {formatHeader(col)} {/* Capitalize first letter */}
                                                 </th>
                                             ))}
                                         </tr>
@@ -302,7 +313,7 @@ export default function Teams() {
                                                     key={f.id}
                                                     className={idx % 3 === 2 ? "bg-gray-100 hover:bg-gray-200" : "hover:bg-gray-100"}
                                                 >
-                                                    <td className="px-4 py-2 border-y border-gray-600">{f.matchNumber}</td>
+                                                    <td className="px-4 py-2 border-y border-gray-600">{f.match_number}</td>
                                                     {numericColumns.map((col) => (
                                                         <td key={col} className="px-4 py-2 border-y border-gray-600 text-center">
                                                             {f[col] ?? 0}
