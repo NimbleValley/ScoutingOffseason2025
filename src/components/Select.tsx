@@ -1,7 +1,13 @@
-const formatValue = (str: string) => {
-    const result = str.replace(/([A-Z])/g, " $1");
-    return result.charAt(0).toUpperCase() + result.slice(1);
-};
+const formatHeader = (str: string) => {
+        // Replace underscores with spaces
+        let result = str.replace(/_/g, " ");
+        // Add space before uppercase letters (optional, in case of camelCase too)
+        result = result.replace(/([A-Z])/g, " $1");
+        // Capitalize first letter of the string
+        result = result.charAt(0).toUpperCase() + result.slice(1);
+        // Replace multiple spaces with a single space
+        return result.replace(/\s+/g, " ").trim();
+    };
 
 export default function CustomSelect({ view, setView, label, options }) {
     return (
@@ -20,7 +26,7 @@ export default function CustomSelect({ view, setView, label, options }) {
                 {
                     options.map((value: string | number | boolean) => {
                         return (
-                            <option value={String(value)} key={String(value)} > {typeof value == 'string' ? formatValue(value) : String(value)} </option>
+                            <option value={String(value)} key={String(value)} > {typeof value == 'string' ? formatHeader(value) : String(value)} </option>
                         );
                     })
                 }

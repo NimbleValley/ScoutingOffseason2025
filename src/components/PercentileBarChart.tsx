@@ -1,23 +1,44 @@
 import React, { useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import { useScoutingStore } from "../app/localDataStore";
+import type { LiveDataNumberKeysWithOPR, NumericKeys } from "../app/types";
 
 interface Props {
-  categories: string[];
+  categories: LiveDataNumberKeysWithOPR[];
 }
 
 const TeamPercentileBarChartVertical: React.FC<Props> = ({ categories }) => {
   const { teamStats, columnPercentiles, currentViewingTeam } = useScoutingStore();
 
   // Helper to calculate percentile based on q3 vs percentiles
-  const getPercentile = (value: number, p: { p10: number; p25: number; p75: number; p90: number }) => {
+  const getPercentile = (
+    value: number,
+    p: { p10: number; p25: number; p75: number; p90: number }
+  ) => {
     if (!p) return 0;
-    if (value <= p.p10) return 10 * (value / p.p10);
-    if (value <= p.p25) return 10 + 15 * ((value - p.p10) / (p.p25 - p.p10));
-    if (value <= p.p75) return 25 + 50 * ((value - p.p25) / (p.p75 - p.p25));
-    if (value <= p.p90) return 75 + 15 * ((value - p.p75) / (p.p90 - p.p75));
-    return 90 + 10 * ((value - p.p90) / (p.p90 || value)); // extend beyond p90
+
+    if (value <= p.p10) return 0;
+    if (value >= p.p90) return 100;
+
+    // Smoothly scale between p10 → p25 → p75 → p90
+    if (value <= p.p25)
+      return 0 + 25 * ((value - p.p10) / (p.p25 - p.p10));
+    if (value <= p.p75)
+      return 25 + 50 * ((value - p.p25) / (p.p75 - p.p25));
+    return 75 + 25 * ((value - p.p75) / (p.p90 - p.p75));
   };
+
+  const formatHeader = (str: string) => {
+    // Replace underscores with spaces
+    let result = str.replace(/_/g, " ");
+    // Add space before uppercase letters (optional, in case of camelCase too)
+    result = result.replace(/([A-Z])/g, " $1");
+    // Capitalize first letter of the string
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    // Replace multiple spaces with a single space
+    return result.replace(/\s+/g, " ").trim();
+  };
+
 
   const data = useMemo(() => {
     return categories.map((cat) => {
@@ -37,7 +58,7 @@ const TeamPercentileBarChartVertical: React.FC<Props> = ({ categories }) => {
       <h3 className="text-lg font-semibold mb-3">Team Percentile Comparison</h3>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
-          <XAxis dataKey="category" angle={-25} textAnchor="end" interval={0} />
+          <XAxis dataKey="category"  angle={-25} textAnchor="end" interval={0} />
           <YAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v.toFixed(0)}%`} />
           <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} animationDuration={50} />
           <Bar dataKey="value" fill="#f69f3bff" radius={[4, 4, 0, 0]} maxBarSize={50} animationDuration={500}>

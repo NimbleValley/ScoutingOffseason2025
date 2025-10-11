@@ -133,7 +133,7 @@ export default function Settings() {
                 ) : (
                     <div className="flex flex-col items-center gap-2">
                         <CustomSelect view={eventName} setView={setEventName} label={'Event Name: '} options={eventKeys}></CustomSelect>
-                        <CustomSelect view={usePracticeData} setView={setUsePracticeData} label={'Use practice data '} options={[true, false]}></CustomSelect>
+                        <CustomSelect view={usePracticeData} setView={setUsePracticeData} label={'Include practice/pre scout data '} options={[true, false]}></CustomSelect>
                         <button className="cursor-pointer border-2 border-orange-400 px-2 py-1 text-lg rounded-md hover:bg-orange-700 hover:text-white transition duration-500" onClick={() => {
                             if (prompt('Put in a password to prevent abuse:') === "TyTy77") {
                                 alert('Generating ai overviews, play stay on the page until it either errors or succeeds... please close this dialogue.');

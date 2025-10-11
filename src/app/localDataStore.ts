@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { numericColumns, type ColumnPercentiles, type LiveDataNumberKeysWithOPR, type LiveDataRowWithOPR, type PitScoutingForm, type StatboticsTeam, type StatRecord, type TbaData, type TeamStats } from "./types";
+import { numericColumns, type ColumnPercentiles, type LiveDataNumberKeysWithOPR, type LiveDataRowWithOPR, type PitScoutDataRow, type StatboticsTeam, type StatRecord, type TbaData, type TeamStats } from "./types";
 import { supabase } from "../supabase";
 import type { Database } from "../supabasetypes";
 
@@ -133,11 +133,14 @@ async function fetchEvents(year: number) {
   }
 }
 
-async function fetchPitForms(): Promise<PitScoutingForm[]> {
-  const querySnapshot = await getDocs(collection(db, "pitScout"));
-  return querySnapshot.docs
-    .map((doc) => ({ id: doc.id, teamNumber: Number(doc.data().teamNumber), algaeDetails: doc.data().algaeDetails, climbDetails: doc.data().climbDetails, recentChanges: doc.data().recentChanges, driverExperience: doc.data().driverExperience }))
-    .filter((f) => f.teamNumber !== -1);
+async function fetchPitFormsSupabase(): Promise<PitScoutDataRow[]> {
+  const { data, error } = await supabase
+    .from("Pit Scouting")
+    .select("*");
+
+  if (!data) return [];
+
+  return data.filter((item) => item.team_number > 0);
 }
 
 async function fetchTbaData(
@@ -254,7 +257,7 @@ async function fetchAiMatches(): Promise<Record<string, string>> {
 
 interface ScoutingState {
   forms: LiveDataRowWithOPR[];
-  pitForms: PitScoutingForm[];
+  pitForms: PitScoutDataRow[];
   teamStats: Record<number, TeamStats>;
   columnPercentiles: ColumnPercentiles;
   loading: boolean;
@@ -360,7 +363,7 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
     const [eventsData, formsData, pitFormsData, tbaWrapped, aiOverviews, aiMatches] = await Promise.all([
       fetchEvents(year),
       fetchRowsSupabase(),
-      fetchPitForms(),
+      fetchPitFormsSupabase(),
       fetchTbaData(get().eventName),
       fetchAiOverviews(),
       fetchAiMatches(),
@@ -378,7 +381,7 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
         if (Object.keys(teamStats).includes(String(team))) {
           const roundedOPR = Math.round(opr * 10) / 10;
           if (!teamStats[team]) {
-            teamStats[team] = {};
+            //teamStats[team] = {};
           }
           teamStats[team]["opr"] = {
             max: roundedOPR,
@@ -433,6 +436,6 @@ const fetchRowsSupabase = async (): Promise<LiveDataRowWithOPR[]> => {
   // Add default OPR (could come from TBA / statbotics later)
   return data.map((row) => ({
     ...row,
-    opr: row.opr ?? 0,
+    opr: 0,
   }));
 };

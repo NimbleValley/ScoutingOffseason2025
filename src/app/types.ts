@@ -57,21 +57,13 @@ export interface StatboticsTeam {
   [key: string]: any;
 }
 
-export interface PitScoutingForm {
-  id?: string;
-  teamNumber: number;
-  algaeDetails: string;
-  climbDetails: string;
-  driverExperience: string;
-  recentChanges: string;
-  [key: string]: any;
-}
-
 export interface TbaData {
   rankings: any[];
   oprs: Record<string, number>;
   matches: any[];
 }
+
+export type PitScoutDataRow = Database["public"]["Tables"]["Pit Scouting"]["Row"];
 
 export type LiveDataRow = Database["public"]["Tables"]["Live Data"]["Row"];
 
@@ -89,7 +81,8 @@ export type LiveDataNumberKeysWithOPR = NumericKeys<LiveDataRowWithOPR>;
 export type LiveDataKey = keyof LiveDataRow;
 export type LiveDataKeyWithOPR = keyof LiveDataRowWithOPR;
 
-export const numericColumns: LiveDataKeyWithOPR[] = [
+export const numericColumns: LiveDataNumberKeysWithOPR[] = [
+  "team_number",
   "opr",
   "total_points",
   "auto_points",

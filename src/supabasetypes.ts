@@ -177,6 +177,39 @@ export type Database = {
         }
         Relationships: []
       }
+      "Pit Scouting": {
+        Row: {
+          algae_description: string
+          auto_description: string
+          comments: string
+          created_at: string
+          driver_experience: string
+          endgame_description: string
+          id: number
+          team_number: number
+        }
+        Insert: {
+          algae_description: string
+          auto_description: string
+          comments: string
+          created_at?: string
+          driver_experience: string
+          endgame_description: string
+          id?: number
+          team_number?: number
+        }
+        Update: {
+          algae_description?: string
+          auto_description?: string
+          comments?: string
+          created_at?: string
+          driver_experience?: string
+          endgame_description?: string
+          id?: number
+          team_number?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

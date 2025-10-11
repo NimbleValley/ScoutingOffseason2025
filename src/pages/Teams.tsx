@@ -71,7 +71,7 @@ export default function Teams() {
     }, [teamForms, selectedField]);
 
     const getPitForm = useMemo(() => {
-        return pitForms.find(p => Number(p.teamNumber) === Number(currentViewingTeam));
+        return pitForms.find(p => Number(p.team_number) === Number(currentViewingTeam));
     }, [currentViewingTeam, pitForms]);
 
     return (
@@ -259,27 +259,33 @@ export default function Teams() {
                                 getPitForm ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="bg-gray-50 p-3 rounded-lg">
+                                            <p className="text-gray-500 text-sm">Driver Experience</p>
+                                            <p className="text-lg font-medium text-gray-800">
+                                                {getPitForm.driver_experience || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                            <p className="text-gray-500 text-sm">Autos</p>
+                                            <p className="text-lg font-medium text-gray-800">
+                                                {getPitForm.auto_description || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded-lg">
                                             <p className="text-gray-500 text-sm">Algae Details</p>
                                             <p className="text-lg font-medium text-gray-800">
-                                                {getPitForm.algaeDetails || "N/A"}
+                                                {getPitForm.algae_description || "N/A"}
                                             </p>
                                         </div>
                                         <div className="bg-gray-50 p-3 rounded-lg">
                                             <p className="text-gray-500 text-sm">Climb Details</p>
                                             <p className="text-lg font-medium text-gray-800">
-                                                {getPitForm.climbDetails || "N/A"}
+                                                {getPitForm.endgame_description || "N/A"}
                                             </p>
                                         </div>
                                         <div className="bg-gray-50 p-3 rounded-lg">
-                                            <p className="text-gray-500 text-sm">Driver Experience</p>
+                                            <p className="text-gray-500 text-sm">Final Comments</p>
                                             <p className="text-lg font-medium text-gray-800">
-                                                {getPitForm.driverExperience || "N/A"}
-                                            </p>
-                                        </div>
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                            <p className="text-gray-500 text-sm">Recent Changes</p>
-                                            <p className="text-lg font-medium text-gray-800">
-                                                {getPitForm.recentChanges || "N/A"}
+                                                {getPitForm.comments || "N/A"}
                                             </p>
                                         </div>
                                     </div>
@@ -454,7 +460,7 @@ export default function Teams() {
                         </div>
 
 
-                        <TeamPercentileBarChartVertical categories={["totalCoral", "autoPoints", "telePoints", "endgamePoints", "totalCoral", "totalAlgae", "totalGamepieces"]} />
+                        <TeamPercentileBarChartVertical categories={["total_coral", "auto_points", "tele_points", "endgame_points", "total_algae", "total_gamepieces"]} />
 
 
 

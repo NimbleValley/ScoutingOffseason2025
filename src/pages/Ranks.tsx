@@ -5,22 +5,28 @@ import Navbar from "../components/NavBar";
 import TableWithChart from "../components/RankChart";
 import CustomSelect from "../components/Select";
 import SettingsButton from "../components/SettingsButton";
-import { numericColumns } from "../app/types";
+import { numericColumns, type LiveDataNumberKeysWithOPR } from "../app/types";
 
 interface ChartRow {
     team: string;
     value: number;
 }
 
-const formatCategory = (str: string) => {
-    const result = str.replace(/([A-Z])/g, " $1");
-    return result.charAt(0).toUpperCase() + result.slice(1);
+const formatHeader = (str: string) => {
+    // Replace underscores with spaces
+    let result = str.replace(/_/g, " ");
+    // Add space before uppercase letters (optional, in case of camelCase too)
+    result = result.replace(/([A-Z])/g, " $1");
+    // Capitalize first letter of the string
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    // Replace multiple spaces with a single space
+    return result.replace(/\s+/g, " ").trim();
 };
 
 export default function Ranks() {
     const { teamStats, loading, loadData } = useScoutingStore();
 
-    const [category, setCategory] = useState('total_points');
+    const [category, setCategory] = useState<LiveDataNumberKeysWithOPR>('total_points');
     const [valueType, setValueType] = useState<'min' | 'max' | 'q3' | 'mean' | 'median'>('median');
     const [showGraph, setShowGraph] = useState<boolean>(true);
 
@@ -47,11 +53,11 @@ export default function Ranks() {
                             <CustomSelect view={showGraph} setView={(v: string | boolean) => setShowGraph(v === true || v === 'true')} label={'Show graph:'} options={[true, false]}></CustomSelect>
                         </div>
                         <div className='h-10' />
-                        <TableWithChart data={chartData} category={formatCategory(category)} show={showGraph} ></TableWithChart>
+                        <TableWithChart data={chartData} category={formatHeader(category)} show={showGraph} ></TableWithChart>
                     </div>
                 )}
                 <HotReloadButton />
-                <SettingsButton/>
+                <SettingsButton />
             </main>
         </div>
     );
