@@ -1,5 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useScoutingStore } from "../app/localDataStore";
+import { useNavigate } from "react-router";
+import { useState } from "react";
+import TeamCommentsModal from "./TeamCommentModal";
 
 interface ChartRow {
   team: string;
@@ -12,10 +15,22 @@ export default function TableWithChart({ data, category, show }: { data: ChartRo
   // Sort descending by default
   const sortedData = [...data].sort((a, b) => b.value - a.value);
 
-  const { setCurrentViewingTeam } = useScoutingStore();
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState<boolean>(false);
+  const [selectedTeamNumber, setSelectedTeamNumber] = useState<number>(-1);
+
+  const navigate = useNavigate();
+
+  const { setCurrentViewingTeam, forms, teamInfo } = useScoutingStore();
 
   return (
     <div className="flex flex-row gap-0 w-full mb-10 justify-center">
+      <TeamCommentsModal
+                      isOpen={isCommentModalOpen}
+                      onClose={() => setIsCommentModalOpen(false)}
+                      forms={forms}
+                      teamNumber={selectedTeamNumber}
+                      teamInfo={teamInfo}
+                  />
       {/* Table */}
       <div className="flex flex-col gap-1 flex-1 max-w-xl min-w-50">
         <div className="grid grid-cols-3 bg-gray-700 text-white font-bold px-0 py-1 rounded grid-cols-[25%_25%_auto]">
@@ -30,8 +45,8 @@ export default function TableWithChart({ data, category, show }: { data: ChartRo
           >
             <div className="text-center">{idx + 1}</div>
             <div className="text-center cursor-pointer hover:text-orange-500 hover:font-bold transition duartion-250" onClick={() => {
-              setCurrentViewingTeam(Number(row.team));
-              window.open('/teams', '_self');
+              setSelectedTeamNumber(Number(row.team));
+              setIsCommentModalOpen(true);
             }} >{row.team}</div>
             <div className="text-center">{row.value}</div>
           </div>

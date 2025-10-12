@@ -6,6 +6,7 @@ import { type StatRecord, type TeamStats, type ColumnPercentiles, type LiveDataR
 import HotReloadButton from "../components/HotReload";
 import SettingsButton from "../components/SettingsButton";
 import type { Database } from "../supabasetypes";
+import TeamCommentsModal from "../components/TeamCommentModal";
 
 type LiveDataRow = Database["public"]["Tables"]["Live Data"]["Row"];
 
@@ -42,20 +43,23 @@ const VALUE_TYPE_KEY = 'tableTeamValueType';
 
 export default function Tables() {
 
-    const { forms, teamStats, loading, columnPercentiles, loadData } = useScoutingStore();
+    const { forms, teamStats, loading, columnPercentiles, loadData, teamInfo } = useScoutingStore();
 
     useEffect(() => {
         loadData(); // Only fetches on first load
     }, []);
+
+    const [isCommentModalOpen, setIsCommentModalOpen] = useState<boolean>(false);
+    const [selectedTeamNumber, setSelectedTeamNumber] = useState<number>(-1);
 
     const [tableType, setTableType] = useState<"Raw" | "Team">("Team");
     const [teamValueType, setTeamValueType] = useState<
         "Min" | "Max" | "Median" | "Mean" | "Q3"
     >(sessionStorage.getItem(VALUE_TYPE_KEY) as "Min" | "Max" | "Median" | "Mean" | "Q3" ?? "Median");
 
-    const [showHighlight, setShowHighlight] = useState<Boolean>(true);
-    const [showControls, setShowControls] = useState<Boolean>(true);
-    const [rowHighlightTeam, setRowHighlightTeam] = useState<Number>(-1);
+    const [showHighlight, setShowHighlight] = useState<boolean>(true);
+    const [showControls, setShowControls] = useState<boolean>(true);
+    const [rowHighlightTeam, setRowHighlightTeam] = useState<number>(-1);
 
     const [sortConfig, setSortConfig] = useState<{ column: string | null; direction: 'asc' | 'desc' | null }>({
         column: null,
@@ -122,6 +126,13 @@ export default function Tables() {
     return (
         <div className="min-h-screen bg-gray-50">
             <Navbar />
+            <TeamCommentsModal
+                isOpen={isCommentModalOpen}
+                onClose={() => setIsCommentModalOpen(false)}
+                forms={forms}
+                teamNumber={selectedTeamNumber}
+                teamInfo={teamInfo}
+            />
             <main className="pt-20 px-0 md:px-6 pr-10">
                 {loading ? (
                     <div className="text-orange-500">Loading data...</div>
@@ -204,7 +215,11 @@ export default function Tables() {
                                                     ) : typeof form[col] === "boolean" ? (
                                                         form[col] ? "Yes" : "No"
                                                     ) : (
-                                                        form[col] ?? ""
+                                                        col == 'match_number' ? (
+                                                            form.match_type == 'match' ? form[col] ?? "" : form.match_type.toUpperCase() ?? ""
+                                                        ) :
+                                                            (form[col] ?? "")
+
                                                     )}
                                                 </td>
                                             ))}
@@ -230,7 +245,6 @@ export default function Tables() {
                                                 }
                                             >
                                                 {numericColumns.map((col) => {
-                                                    console.error(statObj[col] + ", " + col)
                                                     const value =
                                                         statObj[col][
                                                         teamValueType.toLowerCase() as keyof StatRecord
@@ -260,7 +274,8 @@ export default function Tables() {
                                                     return (
                                                         <td
                                                             key={col}
-                                                            className={`border-t-1 border-b-1 border-y-gray-500 px-3 py-2 text-center ${sortConfig.column === col ? 'border-x-orange-400 border-x-3' : ''}`}
+                                                            className={`cursor-${col == 'team_number' ? 'pointer' : 'arrow'} ${col == 'team_number' ? 'hover:font-bold' : ''} transition border-t-1 border-b-1 border-y-gray-500 px-3 py-2 text-center ${sortConfig.column === col ? 'border-x-orange-400 border-x-3' : ''}`}
+                                                            onClick={col == 'team_number' ? () => { setSelectedTeamNumber(value); setIsCommentModalOpen(true); } : () => { }}
                                                         >
                                                             <span className={className}>{value}</span>
                                                         </td>
@@ -342,4 +357,11 @@ function TeamValueTypeSelector({
             </select>
         </div>
     );
+}
+
+function capitalizeFirstLetter(str: string) {
+    if (typeof str !== 'string' || str.length === 0) {
+        return str; // Handle non-string or empty input
+    }
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }

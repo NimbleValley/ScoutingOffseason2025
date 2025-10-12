@@ -6,6 +6,7 @@ import TableWithChart from "../components/RankChart";
 import CustomSelect from "../components/Select";
 import SettingsButton from "../components/SettingsButton";
 import { numericColumns, type LiveDataNumberKeysWithOPR } from "../app/types";
+import { useNavigate } from "react-router-dom";
 
 interface ChartRow {
     team: string;
@@ -25,6 +26,8 @@ const formatHeader = (str: string) => {
 
 export default function Ranks() {
     const { teamStats, loading, loadData } = useScoutingStore();
+
+    const navigate = useNavigate();
 
     const [category, setCategory] = useState<LiveDataNumberKeysWithOPR>('total_points');
     const [valueType, setValueType] = useState<'min' | 'max' | 'q3' | 'mean' | 'median'>('median');

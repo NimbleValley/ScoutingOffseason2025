@@ -27,9 +27,34 @@ export default function Settings() {
     // Wrap in an async function so you can use await
     async function generateAIOverviewsTeamsJSON() {
 
+        /*
         const context = [
             "Provide a team overview for each team. Make it a few sentences, specifically touch on any struggles, what their auto does, endgame capabilities, tele-operated scoring, algae/coral capabilities, and how good they are for picking",
             "Respond in a json format with the team's number as the key followed by the text.",
+            JSON.stringify(teamInfo),
+            JSON.stringify(forms),
+            JSON.stringify(tbaData),
+            JSON.stringify(pitForms),
+        ];*/
+
+        const context = [
+            `Provide a team overview for each team. Make it a few sentences, specifically touch on any struggles, what their auto does, endgame capabilities, tele-operated scoring, algae/coral capabilities, and how good they are for picking. It is good to cite match numbers for specifics, but if match_type is practice or pre, then cite it as practice or pre match instead of the match number. If match number is over 500, then say practice match instead of number. Respond with short sentences/commas in the following format as a VALID JSON, 9999 being their team number:
+            {
+            [
+            9999: {
+                "auto": "Talk about their known auto modes from matches & pit scouting, where they start, consistency, etc. There is no defense in auto period",
+                "coral": "Talk about their known coral capabilities from matches & pit scouting, what levels they can do, consistency, etc",
+                "algae": "Talk about their known algae capabilities from matches & pit scouting, consistency, etc",
+                "endgame": "Talk about their known endgames from matches & pit scouting, how long it takes to climb, consistency, etc",
+                "strengths": "Talk about their relative strengths, what could make them better from other teams",
+                "concerns": "This is the most important, talk about any known issues, worries, bad matches, concerns about the team & robot, it is critical to cite match numbers/ practice or pre here",
+                "adjectives": "describe the words with a couple adjectives (such as strong, inconsistent, swift, etc)",
+            }
+            ]
+        }
+            `,
+            'Only include the teams in the array below...',
+            JSON.stringify([...new Set(forms.map((f) => f.team_number))]),
             JSON.stringify(teamInfo),
             JSON.stringify(forms),
             JSON.stringify(tbaData),

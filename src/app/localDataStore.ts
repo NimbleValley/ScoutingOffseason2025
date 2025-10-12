@@ -172,6 +172,12 @@ async function fetchTbaData(
     const matches = await matchesRes.json();
     const teams = await teamsRes.json();
 
+    let unsearchedTeams = [...new Set(useScoutingStore.getState().forms.map((r) => r.team_number).filter((item) =>
+      !teams.map((t) => t.team_number).includes(item)
+    ))];
+
+    console.warn(unsearchedTeams);
+
     const teamInfo: Record<number, { name: string; nickname: string }> = {};
     teams.forEach((t: any) => {
       teamInfo[t.team_number] = {
@@ -179,6 +185,23 @@ async function fetchTbaData(
         nickname: t.nickname ?? `Team ${t.team_number}`,
       };
     });
+
+    await Promise.all(
+      unsearchedTeams.map(async (t) => {
+        const tempTeamData = await fetch(
+          `https://www.thebluealliance.com/api/v3/team/frc${t}`,
+          { headers: { "X-TBA-Auth-Key": TBA_KEY } }
+        );
+        const data = await tempTeamData.json();
+        console.error(data);
+        teamInfo[data.team_number] = {
+          name: data.name ?? `Team ${data.team_number}`,
+          nickname: data.nickname ?? `Team ${data.team_number}`,
+        };
+      })
+    );
+
+    console.log(teamInfo);
 
     return {
       tbaData: {
@@ -224,7 +247,7 @@ async function fetchAiOverviews(): Promise<Record<number, string>> {
 
   Object.entries(data).forEach(([teamStr, overview]) => {
     const team = Number(teamStr);
-    if (!isNaN(team) && typeof overview === "string") {
+    if (!isNaN(team)) {
       overviews[team] = overview;
     }
   });
@@ -360,17 +383,18 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
     set({ loading: true });
     const year = new Date().getFullYear();
 
-    const [eventsData, formsData, pitFormsData, tbaWrapped, aiOverviews, aiMatches] = await Promise.all([
+    const [eventsData, formsData, pitFormsData, aiOverviews, aiMatches] = await Promise.all([
       fetchEvents(year),
       fetchRowsSupabase(),
       fetchPitFormsSupabase(),
-      fetchTbaData(get().eventName),
       fetchAiOverviews(),
       fetchAiMatches(),
     ]);
 
+    const tbaWrapped = await fetchTbaData(get().eventName);
+
     console.log(formsData);
-    
+
     const teamStats = computeTeamStats(formsData as LiveDataRowWithOPR[]);
     console.log(teamStats);
 
@@ -430,7 +454,7 @@ const fetchRowsSupabase = async (): Promise<LiveDataRowWithOPR[]> => {
 
   var matchTypes: Database['public']['Enums']['matchscouttype'][] = ['match'];
 
-  if(useScoutingStore().usePracticeData) {
+  if (useScoutingStore.getState().usePracticeData) {
     matchTypes.push('practice');
     matchTypes.push('pre');
   }

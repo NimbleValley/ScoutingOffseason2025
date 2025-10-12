@@ -64,7 +64,7 @@ export default function Teams() {
     // Prepare data for line chart
     const chartData = useMemo(() => {
         if (teamForms.length === 0) return [];
-        return teamForms.map(f => ({
+        return teamForms.filter((f) => f.match_type == 'match').map(f => ({
             match: f.match_number,
             value: Number(f[selectedField] ?? 0),
         }));
@@ -145,7 +145,7 @@ export default function Teams() {
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Quartile 3 Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]['total_points'].q3 ?? 0}
+                                        {teamStats[currentViewingTeam]?.total_points?.q3 ?? 0}
                                     </p>
                                 </div>
 
@@ -153,46 +153,74 @@ export default function Teams() {
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Auto Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.auto_points?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.auto_points?.q3 ?? 0}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Tele Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.tele_points?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.tele_points?.q3 ?? 0}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Endgame Points</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.endgame_points?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.endgame_points?.q3 ?? 0}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Total Gamepieces</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.total_gamepieces?.q3 ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.total_gamepieces?.q3 ?? 0}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
                                     <p className="text-gray-500 text-sm">Max Algae Net</p>
                                     <p className="text-lg font-semibold">
-                                        {teamStats[currentViewingTeam]?.tele_made_net?.max ?? 0 * 10}
+                                        {teamStats[currentViewingTeam]?.tele_made_net?.max ?? 0}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {aiOverviews[currentViewingTeam] &&
+                        {aiOverviews[currentViewingTeam] && (
                             <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-xl font-bold mb-4">CoScout Analysis</h3>
-                                <h5 className="text-md mb-4">{aiOverviews[currentViewingTeam]}</h5>
+                                <h3 className="text-xl font-bold mb-4 text-gray-800">CoScout Analysis</h3>
+                                <div className="space-y-3 text-sm">
+                                    <div className=" bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <span className="text-lg font-semibold text-orange-600">Auto:</span>{" "}
+                                        <span className="text-gray-700">{aiOverviews[currentViewingTeam].auto}</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <span className="text-lg font-semibold text-orange-600">Coral:</span>{" "}
+                                        <span className="text-gray-700">{aiOverviews[currentViewingTeam].coral}</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <span className="text-lg font-semibold text-orange-600">Algae:</span>{" "}
+                                        <span className="text-gray-700">{aiOverviews[currentViewingTeam].algae}</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <span className="text-lg font-semibold text-orange-600">Endgame:</span>{" "}
+                                        <span className="text-gray-700">{aiOverviews[currentViewingTeam].endgame}</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <span className="text-lg font-semibold text-orange-600">Strengths:</span>{" "}
+                                        <span className="text-gray-700">{aiOverviews[currentViewingTeam].strengths}</span>
+                                    </div>
+                                    <div className="bg-red-50 p-3 rounded-lg border border-red-300">
+                                        <span className="text-lg font-semibold text-red-600">Concerns:</span>{" "}
+                                        <span className="text-gray-700">{aiOverviews[currentViewingTeam].concerns}</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <span className="text-gray-600 italic">{aiOverviews[currentViewingTeam].adjectives}</span>
+                                    </div>
+                                </div>
                             </div>
-                        }
+                        )}
 
                         {/* Line graph */}
                         <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
@@ -244,7 +272,7 @@ export default function Teams() {
                                         {teamForms.length > 0 ? (
                                             teamForms.filter(f => f.comments).map(f => (
                                                 <div key={f.id} className="bg-gray-50 p-2 rounded">
-                                                    <span className="font-semibold text-orange-600">Match {f.match_number}:</span>{" "}
+                                                    <span className="font-semibold text-orange-600">{f.match_type == 'match' ? 'Match ' + f.match_number : capitalizeFirstLetter(f.match_type) + ' match'}:</span>{" "}
                                                     <span className="text-gray-800">{f.comments}</span>
                                                 </div>
                                             ))
@@ -478,4 +506,11 @@ export default function Teams() {
             <SettingsButton />
         </div >
     );
+}
+
+function capitalizeFirstLetter(str: string) {
+    if (typeof str !== 'string' || str.length === 0) {
+        return str; // Handle non-string or empty input
+    }
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
