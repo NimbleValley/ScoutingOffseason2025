@@ -427,9 +427,18 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
 }));
 
 const fetchRowsSupabase = async (): Promise<LiveDataRowWithOPR[]> => {
+
+  var matchTypes: Database['public']['Enums']['matchscouttype'][] = ['match'];
+
+  if(useScoutingStore().usePracticeData) {
+    matchTypes.push('practice');
+    matchTypes.push('pre');
+  }
+
   const { data, error } = await supabase
     .from("Live Data")
-    .select("*");
+    .select("*")
+    .in('match_type', matchTypes);
 
   if (!data) return [];
 
