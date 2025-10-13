@@ -70,7 +70,7 @@ export default function Tables() {
 
     useEffect(() => {
         sessionStorage.setItem(VALUE_TYPE_KEY, teamValueType)
-    }, [teamValueType])
+    }, [teamValueType]);
 
     const handleSort = (column: string) => {
         setSortConfig((prev) => {
@@ -148,7 +148,7 @@ export default function Tables() {
             />
             <main className="pt-20 px-0 md:px-6 pr-10">
                 {loading ? (
-                    <div className="text-orange-500">Loading data...</div>
+                    <div className="text-orange-500 m-15 text-2xl font-bold animate-bounce">Loading data...</div>
                 ) : (
                     <div className="scrollbar-thin scrollbar-thumb-orange-500 scrollbar-track-gray-200 relative ">
 

@@ -11,9 +11,9 @@ export default function TeamCommentsModal({
   teamNumber,
   teamInfo,
   teamImages
-}: { isOpen: boolean, onClose: VoidFunction, forms: LiveDataRowWithOPR[], teamNumber: number }) {
+}: { isOpen: boolean, onClose: VoidFunction, forms: LiveDataRowWithOPR[], teamNumber: number, teamInfo: Record<number, { name: string; nickname: string }> }) {
 
-  const { setCurrentViewingTeam, tbaData } = useScoutingStore();
+  const { setCurrentViewingTeam, tbaData, teamStats } = useScoutingStore();
 
   const navigate = useNavigate();
 
@@ -57,7 +57,7 @@ export default function TeamCommentsModal({
                 ) */}
                 <div className="w-full">
 
-                  <div className="p-4 flex justify-between w-full">
+                  <div className="p-4 flex justify-between w-full gap-4">
                     <h3 className="text-3xl font-bold text-gray-800">
                       Team {teamNumber} - {teamInfo && teamInfo[teamNumber]?.nickname || "Unknown Team"}
                     </h3>
@@ -66,15 +66,64 @@ export default function TeamCommentsModal({
                         setCurrentViewingTeam(teamNumber);
                         navigate('/teams');
                       }}
-                      className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-medium cursor-pointer"
+                      className="px-5 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-medium cursor-pointer"
                     >
                       View Team Page
                     </button>
                   </div>
 
-                  <p className="text-base text-gray-800 mb-1">
-                    Rank {tbaData?.rankings?.find(r => r.team_key === `frc${teamNumber}`)?.rank ?? '-1'}, OPR {Math.round(((tbaData?.oprs[`frc${teamNumber}`] ?? -1) ?? 0) * 10) / 10}
-                  </p>
+                  <div className="text-base text-gray-800 mb-1 flex flex-row flex-wrap gap-2">
+                    {/* Rank */}
+                    <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
+                      <p className="text-gray-500 text-xs">Rank</p>
+                      <p className="text-md font-semibold">{tbaData?.rankings?.find(r => r.team_key === `frc${teamNumber}`)?.rank ?? 'N/A'}</p>
+                    </div>
+
+                    {/* OPR */}
+                    <div className="bg-gray-50 p-3 flex flex-col justify-center rounded-lg text-center shadow-md">
+                      <p className="text-gray-500 text-xs">OPR</p>
+                      <p className="text-md font-semibold">
+                        {Math.round((Number(tbaData?.oprs[`frc${teamNumber}`] ?? 0)) * 10) / 10}
+                      </p>
+                    </div>
+
+                    {/* Q3 Points */}
+                    <div className="bg-gray-50 p-3 flex flex-col justify-center rounded-lg text-center shadow-md">
+                      <p className="text-gray-500 text-xs">Total Points</p>
+                      <p className="text-md font-semibold">
+                        {teamStats[teamNumber]?.total_points?.q3 ?? 0}
+                      </p>
+                    </div>
+
+                    {/* Other stats (optional) */}
+                    <div className="bg-gray-50 p-3 flex flex-col justify-center rounded-lg text-center shadow-md">
+                      <p className="text-gray-500 text-xs">Auto Points</p>
+                      <p className="text-md font-semibold">
+                        {teamStats[teamNumber]?.auto_points?.q3 ?? 0}
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 p-3 flex flex-col justify-center rounded-lg text-center shadow-md">
+                      <p className="text-gray-500 text-xs">Tele Points</p>
+                      <p className="text-md font-semibold">
+                        {teamStats[teamNumber]?.tele_points?.q3 ?? 0}
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 p-3 flex flex-col justify-center rounded-lg text-center shadow-md">
+                      <p className="text-gray-500 text-xs">Endgame Points</p>
+                      <p className="text-md font-semibold">
+                        {teamStats[teamNumber]?.endgame_points?.q3 ?? 0}
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 p-3 flex flex-col justify-center rounded-lg text-center shadow-md">
+                      <p className="text-gray-500 text-xs">Total Gamepieces</p>
+                      <p className="text-md font-semibold">
+                        {teamStats[teamNumber]?.total_gamepieces?.q3 ?? 0}
+                      </p>
+                    </div>
+                  </div>
 
                   <p className="text-sm text-gray-500 mt-1">
                     {teamComments.length} comment{teamComments.length !== 1 ? "s" : ""} found
