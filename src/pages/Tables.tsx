@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/NavBar";
-import { EyeOff, Highlighter, Settings2 } from "lucide-react";
+import { EyeOff, Highlighter, Settings2, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useScoutingStore } from "../app/localDataStore";
 import { type StatRecord, type TeamStats, type ColumnPercentiles, type LiveDataRowWithOPR, numericColumns, type LiveDataKeyWithOPR, columnOrder } from "../app/types";
 import HotReloadButton from "../components/HotReload";
@@ -61,6 +61,8 @@ export default function Tables() {
     const [showControls, setShowControls] = useState<boolean>(true);
     const [rowHighlightTeam, setRowHighlightTeam] = useState<number>(-1);
 
+    const [selectedTeam, setSelectedTeam] = useState<number>(-1);
+
     const [sortConfig, setSortConfig] = useState<{ column: string | null; direction: 'asc' | 'desc' | null }>({
         column: null,
         direction: null,
@@ -81,9 +83,20 @@ export default function Tables() {
         });
     };
 
+    // Get sort icon for Raw table
+    const getSortIcon = (columnKey: string) => {
+        if (sortConfig.column !== columnKey) {
+            return <ArrowUpDown size={14} className="inline ml-1 text-gray-600" />;
+        }
+        if (sortConfig.direction === 'desc') {
+            return <ArrowDown size={14} className="inline ml-1 text-orange-600" />;
+        }
+        return <ArrowUp size={14} className="inline ml-1 text-orange-600" />;
+    };
+
     // Sort helper
     function applyRawSorting<T extends Record<string, any>>(rows: T[], config: typeof sortConfig): T[] {
-        if (config.column || !config.direction) return rows;
+        if (!config.column || !config.direction) return rows;
 
         return [...rows].sort((a, b) => {
             let valA = a[config.column ?? 0] ?? 0;
@@ -156,6 +169,9 @@ export default function Tables() {
                             {tableType === 'Team' && (
                                 <TeamValueTypeSelector view={teamValueType} setView={setTeamValueType} />
                             )}
+                            {tableType === 'Raw' && (
+                                <TeamNumberSelector view={selectedTeam} setView={setSelectedTeam} teamStats={teamStats} />
+                            )}
                             <button
                                 className="ml-0 p-1 text-gray-600 hover:text-gray-800 transition cursor-pointer"
                                 onClick={() => setShowHighlight(prev => !prev)}
@@ -170,55 +186,67 @@ export default function Tables() {
                             </button>
                         </div>
 
-                        <table className="table-auto border-collapse border border-gray-300 w-full text-sm md:text-base mt-18 ml-0 mb-15">
-                            <thead className="sticky top-15 transition-top duration-250">
-                                <tr className="bg-gray-200 shadow-lg ">
-                                    {(tableType === "Raw" ? columnOrder : numericColumns).map((col) => (
+                        <table className={`table-auto border-collapse w-full text-sm md:text-base mt-18 ml-0 mb-15 ${tableType === "Raw" ? "shadow-lg rounded-lg overflow-hidden" : "border border-gray-300"}`}>
+                            <thead className="sticky top-0 transition-top duration-250">
+                                <tr className={tableType === "Raw" ? "bg-gradient-to-r from-orange-50 to-orange-100" : "bg-gray-200 shadow-lg"}>
+                                    {(tableType === "Raw" ? columnOrder.filter((c) => c != 'opr') : numericColumns).map((col) => (
                                         <th
                                             key={col}
                                             onClick={() => { handleSort(col); }}
-                                            className={` border-t-1 border-b-1 border-gray-300 px-3 py-2 text-center whitespace-nowrap cursor-pointer select-none hover:bg-gray-300 transition duration-250 ${sortConfig.column === col ? 'bg-orange-400' : ''}`}
+                                            className={`${tableType === "Raw"
+                                                ? "border-b-2 border-orange-300 px-3 py-2 font-semibold text-gray-900"
+                                                : "border-t-1 border-b-1 border-gray-300 px-3 py-2"} text-center whitespace-nowrap cursor-pointer select-none hover:bg-orange-200 transition duration-250 ${sortConfig.column === col ? (tableType === "Raw" ? 'bg-orange-300' : 'bg-orange-400') : ''}`}
                                         >
-                                            {formatHeader(col)}
-                                            {sortConfig.column === col && (
-                                                <span className="ml-1 text-xs">
-                                                    {sortConfig.direction === "desc" ? "▼" : sortConfig.direction === "asc" ? "▲" : ""}
-                                                </span>
-                                            )}
+                                            <div className="flex items-center justify-center gap-1">
+                                                {formatHeader(col)}
+                                                {tableType === "Raw" ? (
+                                                    getSortIcon(col)
+                                                ) : (
+                                                    sortConfig.column === col && (
+                                                        <span className="text-xs font-bold text-orange-600">
+                                                            {sortConfig.direction === "desc" ? "▼" : sortConfig.direction === "asc" ? "▲" : ""}
+                                                        </span>
+                                                    )
+                                                )}
+                                            </div>
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {tableType === "Raw"
-                                    ? applyRawSorting(forms, sortConfig).map((form, index) => (
+                                    ? applyRawSorting(forms, sortConfig).filter((f) => selectedTeam == -1 || f.team_number == selectedTeam).map((form, index) => (
                                         <tr
                                             key={form.id}
                                             className={
-                                                (index + 1) % 3 === 0
-                                                    ? "bg-gray-200 hover:bg-gray-300"
-                                                    : "hover:bg-gray-100"
+                                                index % 3 !== 0
+                                                    ? "bg-white hover:bg-gray-50 transition-colors"
+                                                    : "bg-gray-50 hover:bg-gray-100 transition-colors"
                                             }
                                         >
-                                            {columnOrder.map((col) => (
+                                            {columnOrder.filter((c) => c != 'opr').map((col) => (
                                                 <td
                                                     key={col}
-                                                    className="border border-gray-300 px-3 py-2"
+                                                    className="border-y border-gray-200 px-3 py-2 text-center"
                                                 >
                                                     {col === "comments" ? (
                                                         <button
                                                             onClick={() => viewComment(form[col])}
-                                                            className="px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 transition"
+                                                            className="px-3 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-md hover:bg-orange-600 transition shadow-sm"
                                                         >
                                                             View
                                                         </button>
                                                     ) : typeof form[col] === "boolean" ? (
-                                                        form[col] ? "Yes" : "No"
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${form[col] ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                                            {form[col] ? "Yes" : "No"}
+                                                        </span>
                                                     ) : (
                                                         col == 'match_number' ? (
-                                                            form.match_type == 'match' ? form[col] ?? "" : form.match_type.toUpperCase() ?? ""
+                                                            <span className="font-medium text-gray-800">
+                                                                {form.match_type == 'match' ? form[col] ?? "" : form.match_type.toUpperCase() ?? ""}
+                                                            </span>
                                                         ) :
-                                                            (form[col] ?? "")
+                                                            <span className="text-gray-700">{form[col] ?? ""}</span>
 
                                                     )}
                                                 </td>
@@ -262,19 +290,19 @@ export default function Tables() {
                                                     let className = ` rounded-md px-4 py-1 transition duration-250 `;
                                                     if (percentileColumns.includes(col) && showHighlight) {
                                                         if (value <= p10)
-                                                            className = className.concat(" bg-red-500 font-bold shadow-md ");
+                                                            className = className.concat(" bg-red-500/95 font-bold shadow-sm ");
                                                         else if (value <= p25)
-                                                            className = className.concat(" bg-red-200 shadow-md ");
+                                                            className = className.concat(" bg-red-200/95 shadow-sm ");
                                                         else if (value >= p90)
-                                                            className = className.concat(" bg-blue-300 font-bold shadow-md ");
+                                                            className = className.concat(" bg-blue-300/95 font-bold shadow-sm ");
                                                         else if (value >= p75)
-                                                            className = className.concat(" bg-green-200 shadow-md ");
+                                                            className = className.concat(" bg-green-200/95 shadow-sm ");
                                                     }
 
                                                     return (
                                                         <td
                                                             key={col}
-                                                            className={`cursor-${col == 'team_number' ? 'pointer' : 'arrow'} ${col == 'team_number' ? 'hover:font-bold' : ''} transition border-t-1 border-b-1 border-y-gray-500 px-3 py-2 text-center ${sortConfig.column === col ? 'border-x-orange-400 border-x-3' : ''}`}
+                                                            className={`cursor-${col == 'team_number' ? 'pointer' : 'arrow'} ${col == 'team_number' ? 'hover:font-bold' : ''} transition border-t-1 border-b-1 border-y-gray-500 px-3 py-3 text-center ${sortConfig.column === col ? 'border-x-orange-400 border-x-3' : ''}`}
                                                             onClick={col == 'team_number' ? () => { setSelectedTeamNumber(value); setIsCommentModalOpen(true); } : () => { }}
                                                         >
                                                             <span className={className}>{value}</span>
@@ -354,6 +382,42 @@ function TeamValueTypeSelector({
                 <option value="Median">Median</option>
                 <option value="Mean">Mean</option>
                 <option value="Min">Min</option>
+            </select>
+        </div>
+    );
+}
+
+function TeamNumberSelector({
+    view,
+    setView,
+    teamStats
+}: {
+    view: number;
+    setView: (v: number) => void;
+    teamStats: Record<any, TeamStats>[]
+}) {
+    return (
+        <div className="my-0 ml-2">
+            <label
+                htmlFor="team-value-select"
+                className="mr-2 font-medium text-gray-700"
+            >
+                Team:
+            </label>
+            <select
+                id="team-value-select"
+                value={view}
+                onChange={(e) =>
+                    setView(parseInt(e.target.value))
+                }
+                className="px-3 py-1 border-2 border-gray-300 rounded hover:shadow-xl hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer transition-shadow-border duration-250"
+            >
+                <option value={-1}>ANY</option>
+                {
+                    Object.keys(teamStats).map((key) => {
+                        return <option value={teamStats[key].team_number.max}>{teamStats[key].team_number.max}</option>
+                    })
+                }
             </select>
         </div>
     );

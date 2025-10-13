@@ -3,7 +3,7 @@ import { useScoutingStore } from "../app/localDataStore";
 import Navbar from "../components/NavBar";
 import HotReloadButton from "../components/HotReload";
 import CustomSelect from "../components/Select";
-import { SquarePlay } from "lucide-react";
+import { SquarePlay, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import { numericColumns, type LiveDataNumberKeysWithOPR } from "../app/types";
 import VerticalBubbleChart from "../components/PercentileBarChart";
@@ -11,6 +11,11 @@ import MultiCategoryBubbleChart from "../components/PercentileBarChart";
 import TeamPercentileBarChart from "../components/PercentileBarChart";
 import TeamPercentileBarChartVertical from "../components/PercentileBarChart";
 import SettingsButton from "../components/SettingsButton";
+
+type SortConfig = {
+    key: string | null;
+    direction: 'desc' | 'asc' | null;
+};
 
 export default function Teams() {
 
@@ -36,8 +41,8 @@ export default function Teams() {
 
     const imageUrl = teamImages[currentViewingTeam];
     const [selectedField, setSelectedField] = useState<LiveDataNumberKeysWithOPR>("total_points");
-
     const [activeTab, setActiveTab] = useState<"comments" | "pitScout">("comments");
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: null });
 
     // Utility to convert camelCase to Normal Case
     const formatHeader = (str: string) => {
@@ -60,6 +65,50 @@ export default function Teams() {
             .sort((a, b) => (a.match_number ?? 0) - (b.match_number ?? 0));
     }, [forms, currentViewingTeam]);
 
+    // Sort handler
+    const handleSort = (columnKey: string) => {
+        let direction: 'desc' | 'asc' | null = 'desc';
+        
+        if (sortConfig.key === columnKey) {
+            if (sortConfig.direction === 'desc') {
+                direction = 'asc';
+            } else if (sortConfig.direction === 'asc') {
+                direction = null;
+            }
+        }
+        
+        setSortConfig({ key: direction ? columnKey : null, direction });
+    };
+
+    // Sorted team forms
+    const sortedTeamForms = useMemo(() => {
+        if (!sortConfig.key || !sortConfig.direction) {
+            return teamForms;
+        }
+
+        return [...teamForms].sort((a, b) => {
+            const aVal = sortConfig.key === 'match_number' ? a.match_number : Number(a[sortConfig.key] ?? 0);
+            const bVal = sortConfig.key === 'match_number' ? b.match_number : Number(b[sortConfig.key] ?? 0);
+            
+            if (sortConfig.direction === 'asc') {
+                return aVal - bVal;
+            } else {
+                return bVal - aVal;
+            }
+        });
+    }, [teamForms, sortConfig]);
+
+    // Get sort icon
+    const getSortIcon = (columnKey: string) => {
+        if (sortConfig.key !== columnKey) {
+            //return <ArrowUpDown size={14} className="inline ml-1 text-gray-400" />;
+            return <div></div>;
+        }
+        if (sortConfig.direction === 'desc') {
+            return <ArrowDown size={24} className="inline ml-1 text-orange-600" />;
+        }
+        return <ArrowUp size={24} className="inline ml-1 text-orange-600" />;
+    };
 
     // Prepare data for line chart
     const chartData = useMemo(() => {
@@ -124,14 +173,6 @@ export default function Teams() {
                                         {tbaData?.rankings?.find(r => r.team_key === `frc${currentViewingTeam}`)?.record?.ties ?? 0}
                                     </p>
                                 </div>
-
-                                {/* OPR }
-                                <div className="bg-gray-50 p-3 rounded-lg text-center">
-                                    <p className="text-gray-500 text-sm">EPA</p>
-                                    <p className="text-lg font-semibold">
-                                        {String(statboticsTeams.epa?.breakdown.total_points)}
-                                    </p>
-                                </div>*/}
 
                                 {/* OPR */}
                                 <div className="bg-gray-50 p-3 rounded-lg text-center shadow-md">
@@ -239,8 +280,6 @@ export default function Teams() {
                             </ResponsiveContainer>
                         </div>
 
-
-
                         {/* Comments + Pit Scout Unified Container */}
                         <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
                             {/* Pills Tabs */}
@@ -323,33 +362,52 @@ export default function Teams() {
                             )}
                         </div>
 
-
-
                         {/* Match Stats Table */}
                         <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
                             <h3 className="text-xl font-bold mb-4">Match Stats</h3>
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full border border-gray-600 table-auto rounded-md">
-                                    <thead className="bg-gray-100 shadow-md">
+                            <div className="overflow-x-auto rounded-lg border border-gray-200">
+                                <table className="min-w-full">
+                                    <thead className="bg-gradient-to-r from-orange-50 to-orange-100">
                                         <tr>
-                                            <th className="px-2 py-1 border-y border-gray-600 font-medium text-center">Match #</th>
-                                            {numericColumns.map((col) => (
-                                                <th key={col} className="px-4 py-0 border-y border-gray-600 font-medium text-sm min-w-20 text-center">
-                                                    {formatHeader(col)} {/* Capitalize first letter */}
+                                            <th 
+                                                className="px-4 py-3 text-center font-semibold text-gray-700 cursor-pointer hover:bg-orange-200 transition-colors select-none border-b-2 border-orange-300"
+                                                onClick={() => handleSort('match_number')}
+                                            >
+                                                <div className="flex items-center justify-center">
+                                                    Match #
+                                                    {getSortIcon('match_number')}
+                                                </div>
+                                            </th>
+                                            {numericColumns.filter((n) => n != 'team_number').map((col) => (
+                                                <th 
+                                                    key={col} 
+                                                    className="px-4 py-3 text-center font-semibold text-gray-700 text-sm min-w-20 cursor-pointer hover:bg-orange-200 transition-colors select-none border-b-2 border-orange-300"
+                                                    onClick={() => handleSort(col)}
+                                                >
+                                                    <div className="flex items-center justify-center">
+                                                        {formatHeader(col)}
+                                                        {getSortIcon(col)}
+                                                    </div>
                                                 </th>
                                             ))}
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {teamForms.length > 0 ? (
-                                            teamForms.map((f, idx) => (
+                                    <tbody className="divide-y divide-gray-200">
+                                        {sortedTeamForms.length > 0 ? (
+                                            sortedTeamForms.map((f, idx) => (
                                                 <tr
                                                     key={f.id}
-                                                    className={idx % 3 === 2 ? "bg-gray-100 hover:bg-gray-200" : "hover:bg-gray-100"}
+                                                    className={`transition-colors ${
+                                                        idx % 2 === 0 
+                                                            ? "bg-white hover:bg-gray-50" 
+                                                            : "bg-gray-50 hover:bg-gray-100"
+                                                    }`}
                                                 >
-                                                    <td className="px-4 py-2 border-y border-gray-600">{f.match_number}</td>
-                                                    {numericColumns.map((col) => (
-                                                        <td key={col} className="px-4 py-2 border-y border-gray-600 text-center">
+                                                    <td className="px-4 py-3 text-center font-medium text-gray-900">
+                                                        {f.match_type != 'match' ? f.match_type.toUpperCase() : f.match_number}
+                                                    </td>
+                                                    {numericColumns.filter((n) => n != 'team_number').map((col) => (
+                                                        <td key={col} className="px-4 py-3 text-center text-gray-700">
                                                             {f[col] ?? 0}
                                                         </td>
                                                     ))}
@@ -358,7 +416,7 @@ export default function Teams() {
                                         ) : (
                                             <tr>
                                                 <td
-                                                    className="px-4 py-2 border text-center"
+                                                    className="px-4 py-8 text-center text-gray-500"
                                                     colSpan={numericColumns.length + 1}
                                                 >
                                                     No match data available for this team.
@@ -369,9 +427,6 @@ export default function Teams() {
                                 </table>
                             </div>
                         </div>
-
-
-
 
                         <div className="mt-8 max-w-3xl mx-auto">
                             <h3 className="text-xl font-bold mb-4">Match Schedule</h3>
@@ -487,16 +542,9 @@ export default function Teams() {
                             </div>
                         </div>
 
-
                         <TeamPercentileBarChartVertical categories={["total_coral", "auto_points", "tele_points", "endgame_points", "total_algae", "total_gamepieces"]} />
 
-
-
                         <div className="mb-30"></div>
-
-
-
-
                     </div>
                 )
                 }
@@ -510,7 +558,7 @@ export default function Teams() {
 
 function capitalizeFirstLetter(str: string) {
     if (typeof str !== 'string' || str.length === 0) {
-        return str; // Handle non-string or empty input
+        return str;
     }
     return str.charAt(0).toUpperCase() + str.slice(1);
 }

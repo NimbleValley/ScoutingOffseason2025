@@ -2,6 +2,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import {
   createBrowserRouter,
+  createHashRouter,
   RouterProvider,
 } from "react-router-dom";
 import "./index.css";
@@ -13,8 +14,9 @@ import Settings from "./pages/Settings";
 import CoScout from "./pages/CoScout";
 import Match from "./pages/Match";
 import Picklist from "./pages/Picklist";
+import Sandbox from "./pages/Sandbox";
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: "/",
     element: <Tables />,
@@ -44,8 +46,11 @@ const router = createBrowserRouter([
     path: "picklist",
     element: <Picklist />,
   },
+  {
+    path: "sandbox",
+    element: <Sandbox />,
+  },
 ],
-  { basename: "/ScoutingOffseason2025", }
 );
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
