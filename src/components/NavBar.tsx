@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { BotMessageSquare, Menu, SquareChevronUp } from "lucide-react";
-import { Link, useLocation } from "react-router"; // React Router 7.8.2
+import { useEffect, useRef, useState } from "react";
+import { BotMessageSquare, Menu, Search, SquareChevronUp } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router"; // React Router 7.8.2
 import logoSrc from "../assets/icon.png";
+import { useScoutingStore } from "../app/localDataStore";
 
 const links = [
   { name: "Tables", path: "/" },
@@ -10,11 +11,36 @@ const links = [
   { name: "Compare", path: "/compare" },
   { name: "Match", path: "/match" },
   { name: "Pick List", path: "/picklist" },
+  { name: "Sandbox", path: "/sandbox" },
 ];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+
+  const [currentTeamSearch, setCurrentTeamSearch] = useState<number | null>(null);
+  const [searchActive, setSearchActive] = useState<boolean>(false);
+
+  const { forms, teamStats, setCurrentViewingTeam } = useScoutingStore();
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setSearchActive(false);
+      }
+    }
+
+    setCurrentTeamSearch(null);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [setSearchActive]);
 
   return (
     <header className="bg-gray-900 fixed w-full top-0 left-0 z-50 select-none drop-shadow-lg">
@@ -43,11 +69,10 @@ export default function Navbar() {
                   <span className="absolute inset-0 bg-orange-600 scale-y-0 origin-top group-hover:scale-y-100 transition duration-300 rounded"></span>
                 )}
                 <span
-                  className={`relative ${
-                    isActive
-                      ? "text-white"
-                      : "group-hover:text-white transition-colors duration-500"
-                  }`}
+                  className={`relative ${isActive
+                    ? "text-white"
+                    : "group-hover:text-white transition-colors duration-500"
+                    }`}
                 >
                   {link.name}
                 </span>
@@ -66,6 +91,49 @@ export default function Navbar() {
               className="relative"
             />
           </Link>
+
+          <div ref={wrapperRef} className="relative w-30">
+            {/* Search Input */}
+            <div className="flex items-center relative h-full">
+              <Search className="absolute right-3 cursor-pointer hover:scale-105" color="white" />
+              <input
+                type="text"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearchActive(true);
+                  setCurrentTeamSearch(parseInt(e.target.value));
+                }}
+                className="h-full bg-gray-600 rounded-md w-full text-white text-lg px-3 pr-10"
+                placeholder=""
+              />
+            </div>
+
+            {/* Results Dropdown */}
+            {searchActive && (
+              <div className="absolute top-full mt-1 left-0 w-full bg-white rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+                {Object.keys(teamStats)
+                  .map((key) => teamStats[key])
+                  .filter((team) =>
+                    team.team_number.mean
+                      .toString()
+                      .includes(String(currentTeamSearch))
+                  )
+                  .map((t) => (
+                    <h1
+                      key={t.team_number.max}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer rounded-md"
+                      onClick={() => {
+                        setCurrentViewingTeam(t.team_number.max);
+                        navigate('/teams');
+                        setSearchActive(false);
+                      }}
+                    >
+                      {t.team_number.max}
+                    </h1>
+                  ))}
+              </div>
+            )}
+          </div>
+
         </nav>
 
         {/* Mobile hamburger */}
@@ -82,12 +150,11 @@ export default function Navbar() {
 
       {/* Mobile full-screen menu */}
       <div
-        className={`lg:hidden fixed inset-0 bg-gray-900 bg-opacity-95 flex flex-col items-center justify-center space-y-8 text-3xl
+        className={`lg:hidden fixed top-0 left-0 right-0 bg-gray-900 bg-opacity-95 flex flex-col items-center justify-center gap-4 py-4 h-auto text-2xl
           transform transition-transform-opacity duration-500
-          ${
-            isOpen
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-full opacity-0 pointer-events-none"
+          ${isOpen
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0 pointer-events-none"
           }
         `}
       >
@@ -97,24 +164,68 @@ export default function Navbar() {
             <Link
               key={link.name}
               to={link.path}
-              className="relative text-orange-400 px-6 py-3 rounded group overflow-hidden font-medium"
+              className="relative text-orange-400 px-6 py-2 rounded group overflow-hidden font-medium"
               onClick={() => setIsOpen(false)}
             >
               {isActive && (
                 <span className="absolute inset-0 bg-orange-600 rounded"></span>
               )}
               <span
-                className={`relative ${
-                  isActive
-                    ? "text-white"
-                    : "group-hover:text-white transition-colors duration-300"
-                }`}
+                className={`relative ${isActive
+                  ? "text-white"
+                  : "group-hover:text-white transition-colors duration-300"
+                  }`}
               >
                 {link.name}
               </span>
             </Link>
           );
         })}
+
+
+        <div className="relative w-30 h-10">
+          {/* Search Input */}
+          <div className="flex items-center relative h-full">
+            <Search className="absolute right-3 cursor-pointer hover:scale-105" color="white" />
+            <input
+              type="text" pattern="\d*"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setSearchActive(true);
+                setCurrentTeamSearch(parseInt(e.target.value));
+              }}
+              className="h-full bg-gray-600 rounded-md w-full text-white text-lg px-3 pr-10"
+              placeholder=""
+            />
+          </div>
+
+          {/* Results Dropdown */}
+          {searchActive && (
+            <div className="absolute top-full mt-1 left-0 w-full bg-white rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+              {Object.keys(teamStats)
+                .map((key) => teamStats[key])
+                .filter((team) =>
+                  team.team_number.mean
+                    .toString()
+                    .includes(String(currentTeamSearch))
+                )
+                .map((t) => (
+                  <h1
+                    key={t.team_number.max}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer rounded-md"
+                    onClick={() => {
+                      setCurrentViewingTeam(t.team_number.max);
+                      navigate('/teams');
+                      setIsOpen(false);
+                    }}
+                  >
+                    {t.team_number.max}
+                  </h1>
+                ))}
+            </div>
+          )}
+        </div>
+
+
       </div>
     </header>
   );

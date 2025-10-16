@@ -146,3 +146,24 @@ export const columnOrder: LiveDataKeyWithOPR[] = [
     "driver_rating",
     "disabled",
 ];
+
+export function median(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  } else {
+    return sorted[mid];
+  }
+}
+
+export function q3(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const upperHalf = sorted.slice(Math.ceil(sorted.length / 2));
+  return median(upperHalf);
+}
+
+export const mean = (arr: number[]): number => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
