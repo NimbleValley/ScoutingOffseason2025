@@ -15,6 +15,8 @@ import CoScout from "./pages/CoScout";
 import Match from "./pages/Match";
 import Picklist from "./pages/Picklist";
 import Sandbox from "./pages/Sandbox";
+import Comparison from "./pages/CompareAI";
+import Compare from "./pages/Compare";
 
 const router = createHashRouter([
   {
@@ -49,6 +51,14 @@ const router = createHashRouter([
   {
     path: "sandbox",
     element: <Sandbox />,
+  },
+  {
+    path: "compareai",
+    element: <Comparison />,
+  },
+  {
+    path: "compare",
+    element: <Compare />,
   },
 ],
 );

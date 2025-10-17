@@ -24,12 +24,13 @@ export default function Navbar() {
   const { forms, teamStats, setCurrentViewingTeam } = useScoutingStore();
 
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const wrapperRefMobile = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+      if ((wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) && (wrapperRefMobile.current && !wrapperRefMobile.current.contains(event.target as Node))) {
         setSearchActive(false);
       }
     }
@@ -185,7 +186,7 @@ export default function Navbar() {
 
         <div className="relative w-30 h-10">
           {/* Search Input */}
-          <div className="flex items-center relative h-full">
+          <div ref={wrapperRefMobile} className="flex items-center relative h-full">
             <Search className="absolute right-3 cursor-pointer hover:scale-105" color="white" />
             <input
               type="text" pattern="\d*"

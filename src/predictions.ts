@@ -12,6 +12,7 @@ export interface ScorePrediction {
     percentageCoralNormalRP: number;
     percentageCoralCoopRP: number;
     percentageBargeRP: number;
+    rawResponse: PossibleScoreResponse;
 }
 
 interface AllianceWinPercentageUnderConditions {
@@ -28,6 +29,20 @@ export interface ScorePredictionDouble {
 
 type Level = 'tele_l4' | 'tele_l3' | 'tele_l2' | 'tele_l1';
 type GPSpot = 'tele_l4' | 'tele_l3' | 'tele_l2' | 'tele_l1' | 'tele_made_net';
+
+interface PossibleScoreResponse {
+    allScores: number[];
+    optimalOutcome: RawOutcome;
+    medianOutcome: RawOutcome;
+    badOutcome: RawOutcome;
+}
+
+interface RawOutcome {
+    autoPoints: number;
+    pieceDistribution: Record<GPSpot, number>;
+    endgamePoints: number;
+    totalScore: number;
+}
 
 function percentageOfMatchesCoralNormalRP(
     selectForms: LiveDataRowWithOPR[][],
@@ -51,18 +66,45 @@ function percentageOfMatchesCoralNormalRP(
         matchOutcome.forEach((teamOutcome) => {
             let remainingCoral = teamOutcome.total_coral ?? 0;
 
+            // Check each team’s max capability
+            const canDoL4 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l4',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL3 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l3',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL2 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l2',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL1 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l1',
+                matchPercentageThresh: 0.25,
+            });
+
+            // Cascade capabilities
+            const canDo: Record<Level, boolean> = {
+                tele_l4: canDoL4,
+                tele_l3: canDoL3 || canDoL4, // if L4, also can L3
+                tele_l2: canDoL2 || canDoL3 || canDoL4, // if L3 or L4, also can L2
+                tele_l1: canDoL1, // independent
+            };
+
             for (const level of LEVELS) {
-                // Only allocate if team is capable of this level
-                const canDoLevel = searchForTeamAttribute({
-                    forms: allForms,
-                    team: teamOutcome.team_number,
-                    key: level,
-                    matchPercentageThresh: level === 'tele_l1' ? 0.25 : 0.1,
-                });
 
-                if (!canDoLevel) console.error(teamOutcome.team_number + ' CANNOT DO ' + level);
+                if (!canDo[level]) console.error(teamOutcome.team_number + ' CANNOT DO ' + level);
 
-                if (!canDoLevel) continue; // skip this level
+                if (!canDo[level]) continue;
 
                 if (coralTotals[level] >= THRESHOLD) continue; // level full
 
@@ -110,18 +152,45 @@ function percentageOfMatchesCoralCoopRP(
         matchOutcome.forEach((teamOutcome) => {
             let remainingCoral = teamOutcome.total_coral ?? 0;
 
+            // Check each team’s max capability
+            const canDoL4 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l4',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL3 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l3',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL2 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l2',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL1 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l1',
+                matchPercentageThresh: 0.25,
+            });
+
+            // Cascade capabilities
+            const canDo: Record<Level, boolean> = {
+                tele_l4: canDoL4,
+                tele_l3: canDoL3 || canDoL4, // if L4, also can L3
+                tele_l2: canDoL2 || canDoL3 || canDoL4, // if L3 or L4, also can L2
+                tele_l1: canDoL1, // independent
+            };
+
             for (const level of LEVELS) {
-                // Only allocate if team is capable of this level
-                const canDoLevel = searchForTeamAttribute({
-                    forms: allForms,
-                    team: teamOutcome.team_number,
-                    key: level,
-                    matchPercentageThresh: level === 'tele_l1' ? 0.25 : 0.1,
-                });
 
-                if (!canDoLevel) console.error(teamOutcome.team_number + ' CANNOT DO ' + level);
+                if (!canDo[level]) console.error(teamOutcome.team_number + ' CANNOT DO ' + level);
 
-                if (!canDoLevel) continue; // skip this level
+                if (!canDo[level]) continue;
 
                 if (coralTotals[level] >= THRESHOLD) continue; // level full
 
@@ -157,8 +226,9 @@ function searchForTeamAttribute({ forms, team, key, matchPercentageThresh }: { f
     return (teamMatches.filter((m) => m[key]).length / teamMatches.length) > matchPercentageThresh;
 }
 
-function generateAllPossibleScores(forms: LiveDataRowWithOPR[][], allForms: LiveDataRowWithOPR[]): number[] {
+function generateAllPossibleScores(forms: LiveDataRowWithOPR[][], allForms: LiveDataRowWithOPR[]): PossibleScoreResponse {
     var values: number[] = [];
+    var outcomes: RawOutcome[] = [];
     const LEVELS: GPSpot[] = ['tele_l4', 'tele_l3', 'tele_l2', 'tele_l1', 'tele_made_net'];
 
     const THRESHOLD = 12;
@@ -173,23 +243,64 @@ function generateAllPossibleScores(forms: LiveDataRowWithOPR[][], allForms: Live
             tele_l1: 0,
         };
         let matchScore: number = matchOutcome.map((m) => m.auto_points + m.endgame_points).reduce((sum, points) => sum + points, 0);
+        let autoPoints = matchOutcome.map((m) => m.auto_points).reduce((sum, points) => sum + points, 0);
+        let endgamePoints = matchOutcome.map((m) => m.endgame_points).reduce((sum, points) => sum + points, 0);
 
         matchOutcome.forEach((teamOutcome) => {
-            let remainingCoral = teamOutcome.tele_l4 ?? 0 + teamOutcome.tele_l3 ?? 0 + teamOutcome.tele_l2 ?? 0 + teamOutcome.tele_l1 ?? 0;
+            let remainingCoral = [teamOutcome.tele_l4, teamOutcome.tele_l3, teamOutcome.tele_l2, teamOutcome.tele_l1]
+                .map((v) => v ?? 0)
+                .reduce((sum, v) => sum + v, 0);
+
+            // Tax each team as they wil be less efficient than expected if they do back faces
+            remainingCoral = Math.round(remainingCoral * 0.85);
+
             let remainingNet = teamOutcome.tele_made_net ?? 0;
 
-            for (const level of priorityOrder) {
-                // Only allocate if team is capable of this level
-                const canDoLevel = searchForTeamAttribute({
+            // Check each team’s max capability
+            const canDoL4 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l4',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL3 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l3',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL2 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l2',
+                matchPercentageThresh: 0.1,
+            });
+            const canDoL1 = searchForTeamAttribute({
+                forms: allForms,
+                team: teamOutcome.team_number,
+                key: 'tele_l1',
+                matchPercentageThresh: 0.25,
+            });
+
+            // Cascade capabilities
+            const canDo: Record<GPSpot, boolean> = {
+                tele_l4: canDoL4,
+                tele_l3: canDoL3 || canDoL4, // if L4, also can L3
+                tele_l2: canDoL2 || canDoL3 || canDoL4, // if L3 or L4, also can L2
+                tele_l1: canDoL1, // independent
+                tele_made_net: searchForTeamAttribute({
                     forms: allForms,
                     team: teamOutcome.team_number,
-                    key: level,
-                    matchPercentageThresh: level === 'tele_l1' ? 0.25 : 0.1,
-                });
+                    key: 'tele_made_net',
+                    matchPercentageThresh: 0.15,
+                })
+            };
 
-                if (!canDoLevel) console.error(teamOutcome.team_number + ' CANNOT DO ' + level);
+            for (const level of priorityOrder) {
 
-                if (!canDoLevel) continue; // skip this level
+                if (!canDo[level]) console.error(teamOutcome.team_number + ' CANNOT DO ' + level);
+
+                if (!canDo[level]) continue; // skip this level
 
                 if (gpTotals[level] >= THRESHOLD) continue; // level full
 
@@ -219,9 +330,32 @@ function generateAllPossibleScores(forms: LiveDataRowWithOPR[][], allForms: Live
         matchScore += (gpTotals.tele_l1 * 2);
 
         values.push(matchScore);
+        outcomes.push({
+            autoPoints,
+            endgamePoints,
+            pieceDistribution: gpTotals,
+            totalScore: matchScore
+        });
     }
 
-    return values.sort((a, b) => a - b);
+    // Combine values and outcomes into one array of objects
+    const combined = outcomes.map((o) => ({
+        score: o.totalScore,
+        outcome: o,
+    }));
+
+    combined.sort((a, b) => a.score - b.score); // ascending
+
+    // Unpack back into separate arrays
+    const sortedValues = combined.map((c) => c.score);
+    const sortedOutcomes = combined.map((c) => c.outcome);
+
+    return {
+        'allScores': sortedValues,
+        'badOutcome': sortedOutcomes[0],
+        'medianOutcome': sortedOutcomes[Math.round(sortedOutcomes.length / 2)],
+        'optimalOutcome': sortedOutcomes[sortedOutcomes.length - 1]
+    }
 }
 
 export function predictScoreFromTeams({ teams, forms }: { teams: number[], forms: LiveDataRowWithOPR[] }): ScorePrediction {
@@ -239,7 +373,7 @@ export function predictScoreFromTeams({ teams, forms }: { teams: number[], forms
     // Collect forms per team
     const relevantTeamForms = teams.map(
         (team) => forms.filter((f) => f.team_number === team)
-    );
+    ).filter((f) => f.length > 0);
     console.log(relevantTeamForms)
 
     let allPossibleMatches: LiveDataRowWithOPR[][] = [];
@@ -258,11 +392,11 @@ export function predictScoreFromTeams({ teams, forms }: { teams: number[], forms
 
     const allPossibleScores = generateAllPossibleScores(allPossibleMatches, forms);
 
-    maximumScore = allPossibleScores[allPossibleScores.length - 1];
-    minimumScore = allPossibleScores[0];
-    meanScore = mean(allPossibleScores);
-    medianScore = median(allPossibleScores);
-    q3Score = q3(allPossibleScores);
+    maximumScore = allPossibleScores.allScores[allPossibleScores.allScores.length - 1];
+    minimumScore = allPossibleScores.allScores[0];
+    meanScore = mean(allPossibleScores.allScores);
+    medianScore = median(allPossibleScores.allScores);
+    q3Score = q3(allPossibleScores.allScores);
 
     return {
         maximumScore: Math.round(10 * maximumScore) / 10,
@@ -275,7 +409,8 @@ export function predictScoreFromTeams({ teams, forms }: { teams: number[], forms
         q3Score: Math.round(10 * q3Score) / 10,
         percentageCoralCoopRP: percentageOfMatchesCoralCoopRP(allPossibleMatches, forms),
         percentageCoralNormalRP: percentageOfMatchesCoralNormalRP(allPossibleMatches, forms),
-        percentageBargeRP: percentageBargeRankPoint(allPossibleMatches)
+        percentageBargeRP: percentageBargeRankPoint(allPossibleMatches),
+        rawResponse: allPossibleScores
     }
 }
 

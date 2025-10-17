@@ -128,7 +128,7 @@ export default function Teams() {
             <Navbar />
             <main className="pt-20 px-4 md:px-6">
                 {loading || !forms.length ? (
-                    <div className="text-orange-500 text-lg font-semibold">Loading data...</div>
+                    <div className="text-orange-500 m-15 text-2xl font-bold animate-bounce">Loading data...</div>
                 ) : (
                     <div className="max-w-3xl mx-auto">
                         {/* Team selector */}

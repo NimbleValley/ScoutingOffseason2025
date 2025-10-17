@@ -144,7 +144,7 @@ async function fetchPitFormsSupabase(): Promise<PitScoutDataRow[]> {
 }
 
 async function fetchTbaData(
-  eventKey: string
+  eventKey: string, formsData: LiveDataRowWithOPR[]
 ): Promise<{ tbaData: TbaData; teamInfo: Record<number, { name: string; nickname: string }> } | null> {
   if (!eventKey || eventKey === "XX") return null;
   try {
@@ -172,7 +172,7 @@ async function fetchTbaData(
     const matches = await matchesRes.json();
     const teams = await teamsRes.json();
 
-    let unsearchedTeams = [...new Set(useScoutingStore.getState().forms.map((r) => r.team_number).filter((item) =>
+    let unsearchedTeams = [...new Set(formsData.map((r) => r.team_number).filter((item) =>
       !teams.map((t) => t.team_number).includes(item)
     ))];
 
@@ -391,7 +391,7 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
       fetchAiMatches(),
     ]);
 
-    const tbaWrapped = await fetchTbaData(get().eventName);
+    const tbaWrapped = await fetchTbaData(get().eventName, formsData);
 
     console.log(formsData);
 

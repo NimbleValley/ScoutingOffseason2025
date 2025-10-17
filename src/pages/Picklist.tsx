@@ -19,7 +19,7 @@ export default function Picklist() {
             <Navbar />
             <main className="pt-20 px-0 md:px-6">
                 {loading ? (
-                    <div className="text-orange-500">Loading data...</div>
+                    <div className="text-orange-500 m-15 text-2xl font-bold animate-bounce">Loading data...</div>
                 ) : (
                     <div>
                         
