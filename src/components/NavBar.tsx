@@ -44,7 +44,7 @@ export default function Navbar() {
   }, [setSearchActive]);
 
   return (
-    <header className="bg-gray-900 fixed w-full top-0 left-0 z-50 select-none drop-shadow-lg">
+    <header className="bg-gray-900 fixed w-full top-0 left-0 z-1091 select-none drop-shadow-lg">
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-14">
         {/* Logo + Title */}
         <div className="flex items-center gap-3">

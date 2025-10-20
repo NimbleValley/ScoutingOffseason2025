@@ -19,7 +19,7 @@ export default function ImageModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/67" onClick={onClose}>
+    <div className="fixed inset-0 z-706 flex items-center justify-center bg-black/67" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[85vh] overflow-hidden flex flex-col m-4 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
 
         {/* Content Section */}
