@@ -164,9 +164,13 @@ export default function Teams() {
 
                         {teamImage && teamImage.length > 0 &&
                             <div className="flex lg:hidden flex-row h-50 justify-end items-center gap-5">
-                                <ArrowLeft size={24} onClick={() => setCurrentViewingImage(prev => prev - 1 >= 0 ? prev - 1 : teamImage.length - 1)}/>
+                                {teamImage.length > 1 &&
+                                    <ArrowLeft size={24} onClick={() => setCurrentViewingImage(prev => prev - 1 >= 0 ? prev - 1 : teamImage.length - 1)} />
+                                }
                                 <img onClick={() => setImageOverlayOpen(true)} src={teamImage[currentViewingImage]} alt={`Team ${currentViewingTeam}`} className="h-40 w-40 object-cover mb-3 relative rounded-lg cursor-pointer hover:brightness-50" />
-                                <ArrowRight size={24} onClick={() => setCurrentViewingImage(prev => prev + 1 > teamImage.length - 1 ? 0 : prev + 1)}/>
+                                {teamImage.length > 1 &&
+                                    <ArrowRight size={24} onClick={() => setCurrentViewingImage(prev => prev + 1 > teamImage.length - 1 ? 0 : prev + 1)} />
+                                }
                             </div>
                         }
 

@@ -24,9 +24,13 @@ export default function ImageModal({
 
         {/* Content Section */}
         <div className="flex flex-row flex-1 justify-around items-center gap-5 px-5">
-          <ArrowLeft className="cursor-pointer hover:scale-115" size={24} onClick={() => setCurrentViewingImage(prev => prev - 1 >= 0 ? prev - 1 : teamImage.length - 1)} />
+          {teamImage.length > 1 &&
+            <ArrowLeft className="cursor-pointer hover:scale-115" size={24} onClick={() => setCurrentViewingImage(prev => prev - 1 >= 0 ? prev - 1 : teamImage.length - 1)} />
+          }
           <img src={teamImage[currentViewingImage]} alt={`Team Image`} className="h-[70vh] max-w-[80%] object-contain mb-3 select-none relative rounded-lg" />
-          <ArrowRight className="cursor-pointer hover:scale-115" size={24} onClick={() => setCurrentViewingImage(prev => prev + 1 > teamImage.length - 1 ? 0 : prev + 1)} />
+          {teamImage.length > 1 &&
+            <ArrowRight className="cursor-pointer hover:scale-115" size={24} onClick={() => setCurrentViewingImage(prev => prev + 1 > teamImage.length - 1 ? 0 : prev + 1)} />
+          }
         </div>
 
         {/* Footer */}
