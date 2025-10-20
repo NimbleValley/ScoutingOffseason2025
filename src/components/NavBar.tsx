@@ -45,10 +45,10 @@ export default function Navbar() {
 
   return (
     <header className="bg-gray-900 fixed w-full top-0 left-0 z-50 select-none drop-shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-14">
         {/* Logo + Title */}
         <div className="flex items-center gap-3">
-          <img src={logoSrc} alt="Logo" className="h-15 w-15 object-contain" />
+          <img src={logoSrc} alt="Logo" className="h-12 w-12 object-contain" />
           <div className="text-2xl font-bold text-orange-400 ml-5">
             Scouting 2025
           </div>
@@ -62,7 +62,7 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 to={link.path}
-                className="relative text-orange-400 px-3 py-2 rounded group overflow-hidden font-medium text-xl"
+                className="relative text-orange-400 px-3 py-2 rounded group overflow-hidden font-medium text-lg"
               >
                 {isActive ? (
                   <span className="absolute inset-0 bg-orange-600 group-hover:bg-orange-800 transition duration-300 rounded"></span>
@@ -112,7 +112,7 @@ export default function Navbar() {
             {searchActive && (
               <div className="absolute top-full mt-1 left-0 w-full bg-white rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
                 {Object.keys(teamStats)
-                  .map((key) => teamStats[key])
+                  .map((key) => teamStats[parseInt(key)])
                   .filter((team) =>
                     team.team_number.mean
                       .toString()
@@ -184,9 +184,9 @@ export default function Navbar() {
         })}
 
 
-        <div className="relative w-30 h-10">
+        <div ref={wrapperRefMobile} className="relative w-30 h-10">
           {/* Search Input */}
-          <div ref={wrapperRefMobile} className="flex items-center relative h-full">
+          <div className="flex items-center relative h-full">
             <Search className="absolute right-3 cursor-pointer hover:scale-105" color="white" />
             <input
               type="text" pattern="\d*"
@@ -203,7 +203,7 @@ export default function Navbar() {
           {searchActive && (
             <div className="absolute top-full mt-1 left-0 w-full bg-white rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
               {Object.keys(teamStats)
-                .map((key) => teamStats[key])
+                .map((key) => teamStats[parseInt(key)])
                 .filter((team) =>
                   team.team_number.mean
                     .toString()
@@ -212,7 +212,7 @@ export default function Navbar() {
                 .map((t) => (
                   <h1
                     key={t.team_number.max}
-                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer rounded-md"
+                    className="px-3 py-2 text-sm font-semibold hover:bg-gray-100 cursor-pointer rounded-md"
                     onClick={() => {
                       setCurrentViewingTeam(t.team_number.max);
                       navigate('/teams');

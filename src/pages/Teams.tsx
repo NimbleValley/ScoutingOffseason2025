@@ -3,7 +3,7 @@ import { useScoutingStore } from "../app/localDataStore";
 import Navbar from "../components/NavBar";
 import HotReloadButton from "../components/HotReload";
 import CustomSelect from "../components/Select";
-import { SquarePlay, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { SquarePlay, ArrowDown, ArrowUp, ArrowUpDown, ArrowLeft, ArrowRight } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import { numericColumns, type LiveDataNumberKeysWithOPR } from "../app/types";
 import VerticalBubbleChart from "../components/PercentileBarChart";
@@ -11,6 +11,7 @@ import MultiCategoryBubbleChart from "../components/PercentileBarChart";
 import TeamPercentileBarChart from "../components/PercentileBarChart";
 import TeamPercentileBarChartVertical from "../components/PercentileBarChart";
 import SettingsButton from "../components/SettingsButton";
+import ImageModal from "../components/ImageModal";
 
 type SortConfig = {
     key: string | null;
@@ -23,9 +24,9 @@ export default function Teams() {
         forms,
         teamInfo,
         teamStats,
-        teamImages,
+        teamImage,
         loadData,
-        loadTeamImages,
+        loadTeamImage,
         loading,
         currentViewingTeam,
         setCurrentViewingTeam,
@@ -35,14 +36,22 @@ export default function Teams() {
     } = useScoutingStore();
 
     useEffect(() => {
-        loadTeamImages();
         loadData();
+        loadTeamImage();
     }, []);
 
-    const imageUrl = teamImages[currentViewingTeam];
+    useEffect(() => {
+        loadTeamImage();
+        setCurrentViewingImage(0);
+    }, [currentViewingTeam]);
+
     const [selectedField, setSelectedField] = useState<LiveDataNumberKeysWithOPR>("total_points");
     const [activeTab, setActiveTab] = useState<"comments" | "pitScout">("comments");
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: null });
+
+    const [currentViewingImage, setCurrentViewingImage] = useState<number>(0);
+
+    const [imageOverlayOpen, setImageOverlayOpen] = useState<boolean>(false);
 
     // Utility to convert camelCase to Normal Case
     const formatHeader = (str: string) => {
@@ -68,7 +77,7 @@ export default function Teams() {
     // Sort handler
     const handleSort = (columnKey: string) => {
         let direction: 'desc' | 'asc' | null = 'desc';
-        
+
         if (sortConfig.key === columnKey) {
             if (sortConfig.direction === 'desc') {
                 direction = 'asc';
@@ -76,7 +85,7 @@ export default function Teams() {
                 direction = null;
             }
         }
-        
+
         setSortConfig({ key: direction ? columnKey : null, direction });
     };
 
@@ -89,7 +98,7 @@ export default function Teams() {
         return [...teamForms].sort((a, b) => {
             const aVal = sortConfig.key === 'match_number' ? a.match_number : Number(a[sortConfig.key] ?? 0);
             const bVal = sortConfig.key === 'match_number' ? b.match_number : Number(b[sortConfig.key] ?? 0);
-            
+
             if (sortConfig.direction === 'asc') {
                 return aVal - bVal;
             } else {
@@ -132,7 +141,7 @@ export default function Teams() {
                 ) : (
                     <div className="max-w-3xl mx-auto">
                         {/* Team selector */}
-                        <div className="mb-6 fixed left-5 top-21 bg-gray-100 px-4 py-2 rounded-lg shadow-md">
+                        <div className="mb-6 fixed left-5 top-21 bg-gray-100 px-4 py-2 rounded-lg shadow-md z-537">
                             <CustomSelect
                                 view={currentViewingTeam}
                                 setView={setCurrentViewingTeam}
@@ -141,12 +150,27 @@ export default function Teams() {
                             />
                         </div>
 
-                        {imageUrl && (
-                            <img src={imageUrl} alt={`Team ${currentViewingTeam}`} className="w-40 h-40 object-contain mb-3 relative ml-auto" />
-                        )
+                        <ImageModal isOpen={imageOverlayOpen} onClose={() => setImageOverlayOpen(false)} teamImage={teamImage} />
+
+                        {teamImage && teamImage.length > 0 &&
+                            <div className="hidden lg:flex flex-row w-3xl flex-wrap justify-center items-center">
+                                {
+                                    teamImage.map((url) => {
+                                        return <img onClick={() => setImageOverlayOpen(true)} src={url} alt={`Team ${currentViewingTeam}`} className="mx-3 h-40 w-40 object-cover mb-3 relative rounded-lg cursor-pointer hover:brightness-50" />
+                                    })
+                                }
+                            </div>
                         }
 
-                        {!imageUrl && (
+                        {teamImage && teamImage.length > 0 &&
+                            <div className="flex lg:hidden flex-row h-50 justify-end items-center gap-5">
+                                <ArrowLeft size={24} onClick={() => setCurrentViewingImage(prev => prev - 1 >= 0 ? prev - 1 : teamImage.length - 1)}/>
+                                <img onClick={() => setImageOverlayOpen(true)} src={teamImage[currentViewingImage]} alt={`Team ${currentViewingTeam}`} className="h-40 w-40 object-cover mb-3 relative rounded-lg cursor-pointer hover:brightness-50" />
+                                <ArrowRight size={24} onClick={() => setCurrentViewingImage(prev => prev + 1 > teamImage.length - 1 ? 0 : prev + 1)}/>
+                            </div>
+                        }
+
+                        {!teamImage && (
                             <div className="mt-16"></div>
                         )
                         }
@@ -369,7 +393,7 @@ export default function Teams() {
                                 <table className="min-w-full">
                                     <thead className="bg-gradient-to-r from-orange-50 to-orange-100">
                                         <tr>
-                                            <th 
+                                            <th
                                                 className="px-4 py-3 text-center font-semibold text-gray-700 cursor-pointer hover:bg-orange-200 transition-colors select-none border-b-2 border-orange-300"
                                                 onClick={() => handleSort('match_number')}
                                             >
@@ -379,8 +403,8 @@ export default function Teams() {
                                                 </div>
                                             </th>
                                             {numericColumns.filter((n) => n != 'team_number').map((col) => (
-                                                <th 
-                                                    key={col} 
+                                                <th
+                                                    key={col}
                                                     className="px-4 py-3 text-center font-semibold text-gray-700 text-sm min-w-20 cursor-pointer hover:bg-orange-200 transition-colors select-none border-b-2 border-orange-300"
                                                     onClick={() => handleSort(col)}
                                                 >
@@ -397,11 +421,10 @@ export default function Teams() {
                                             sortedTeamForms.map((f, idx) => (
                                                 <tr
                                                     key={f.id}
-                                                    className={`transition-colors ${
-                                                        idx % 2 === 0 
-                                                            ? "bg-white hover:bg-gray-50" 
-                                                            : "bg-gray-50 hover:bg-gray-100"
-                                                    }`}
+                                                    className={`transition-colors ${idx % 2 === 0
+                                                        ? "bg-white hover:bg-gray-50"
+                                                        : "bg-gray-50 hover:bg-gray-100"
+                                                        }`}
                                                 >
                                                     <td className="px-4 py-3 text-center font-medium text-gray-900">
                                                         {f.match_type != 'match' ? f.match_type.toUpperCase() : f.match_number}

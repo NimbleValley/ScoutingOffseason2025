@@ -68,7 +68,7 @@ function computeTeamStats(
 function computeColumnPercentiles(
   teamStats: Record<number, TeamStats>
 ): ColumnPercentiles {
-  console.error(teamStats)
+  //console.error(teamStats)
   function getPercentile(values: number[], p: number): number {
     if (!values.length) return 0;
     const idx = (p / 100) * (values.length - 1);
@@ -112,7 +112,7 @@ function computeColumnPercentiles(
     }
   }
 
-  console.log(result)
+  //console.log(result)
 
   return result;
 }
@@ -176,7 +176,7 @@ async function fetchTbaData(
       !teams.map((t) => t.team_number).includes(item)
     ))];
 
-    console.warn(unsearchedTeams);
+    //console.warn(unsearchedTeams);
 
     const teamInfo: Record<number, { name: string; nickname: string }> = {};
     teams.forEach((t: any) => {
@@ -193,7 +193,7 @@ async function fetchTbaData(
           { headers: { "X-TBA-Auth-Key": TBA_KEY } }
         );
         const data = await tempTeamData.json();
-        console.error(data);
+        //console.error(data);
         teamInfo[data.team_number] = {
           name: data.name ?? `Team ${data.team_number}`,
           nickname: data.nickname ?? `Team ${data.team_number}`,
@@ -205,8 +205,8 @@ async function fetchTbaData(
 
     return {
       tbaData: {
-        rankings: rankings.rankings ?? [],
-        oprs: oprData.oprs ?? {},
+        rankings: rankings?.rankings ?? [],
+        oprs: oprData?.oprs ?? {},
         matches,
       },
       teamInfo,
@@ -291,10 +291,10 @@ interface ScoutingState {
   statboticsTeams: StatboticsTeam;
   currentViewingTeam: number;
   teamInfo: Record<number, { name: string; nickname: string }>;
-  teamImages: Record<number, string>;
+  teamImage: string[];
   aiOverviews: Record<number, string>;
   aiMatches: Record<string, string>;
-  loadTeamImages: () => Promise<void>;
+  loadTeamImage: () => Promise<void>;
   setCurrentViewingTeam: (team: number) => void;
   loadStatbotics: () => Promise<void>;
   setEventName: (name: string) => void;
@@ -322,24 +322,22 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
   ),
   usePracticeData: localStorage.getItem("usePracticeData") === "true",
   statboticsTeams: [] as any,
-  teamImages: {},
+  teamImage: [],
 
-  loadTeamImages: async () => {
+  loadTeamImage: async () => {
     try {
-      const snapshot = await getDocs(collection(db, "robotImages"));
-      const images: Record<number, string> = {};
+      const ourURL = await supabase.storage.from('robot-images').getPublicUrl(`${get().eventName}/team${get().currentViewingTeam}`).data.publicUrl;
+      console.log(ourURL);
+      const ourImageExists = await checkImageExists(ourURL);
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        // assumes doc.id = "image_team1259"
-        const match = doc.id.match(/image_team(\d+)/);
-        if (match) {
-          const teamNumber = parseInt(match[1], 10);
-          images[teamNumber] = data.url; // Firestore field "url"
-        }
-      });
+      const tbaImages = await fetch(
+        `https://www.thebluealliance.com/api/v3/team/frc${get().currentViewingTeam}/media/${new Date().getFullYear()}`,
+        { headers: { "X-TBA-Auth-Key": TBA_KEY } }
+      );
+      const tbaImageBody = await tbaImages.json();
+      const finalTBAImages = tbaImageBody.filter((a) => a.type != "avatar").map((i) => i.direct_url);
 
-      set({ teamImages: images });
+      ourImageExists ? set({ teamImage: [ourURL, ...finalTBAImages] }) : set({ teamImage: finalTBAImages });
     } catch (error) {
       console.error("Error loading team images:", error);
     }
@@ -382,6 +380,8 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
   hotRefresh: async () => {
     set({ loading: true });
     const year = new Date().getFullYear();
+
+    get().loadTeamImage();
 
     const [eventsData, formsData, pitFormsData, aiOverviews, aiMatches] = await Promise.all([
       fetchEvents(year),
@@ -433,7 +433,7 @@ export const useScoutingStore = create<ScoutingState>((set, get) => ({
 
     const columnPercentiles = computeColumnPercentiles(teamStats);
 
-    console.warn(columnPercentiles)
+    //console.warn(columnPercentiles)
 
     set({
       forms: formsData,
@@ -472,3 +472,12 @@ const fetchRowsSupabase = async (): Promise<LiveDataRowWithOPR[]> => {
     opr: 0,
   }));
 };
+
+async function checkImageExists(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    return res.ok; // true if 200–299
+  } catch {
+    return false;
+  }
+}

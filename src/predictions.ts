@@ -1,4 +1,5 @@
 import { mean, median, q3, type LiveDataKeyWithOPR, type LiveDataRowWithOPR } from "./app/types";
+import { welchTTest, type WelchResult } from "./app/statistics/twoSampleTTest";
 
 export interface ScorePrediction {
     maximumScore: number;
@@ -236,11 +237,11 @@ function generateAllPossibleScores(forms: LiveDataRowWithOPR[][], allForms: Live
 
     for (const matchOutcome of forms) {
         const gpTotals: Record<GPSpot, number> = {
-            tele_l4: 0,
-            tele_l3: 0,
-            tele_made_net: 0,
-            tele_l2: 0,
-            tele_l1: 0,
+            tele_l4: matchOutcome.map((m) => m.auto_l4).reduce((sum, points) => sum + points, 0),
+            tele_l3: matchOutcome.map((m) => m.auto_l3).reduce((sum, points) => sum + points, 0),
+            tele_made_net: matchOutcome.map((m) => m.auto_made_net).reduce((sum, points) => sum + points, 0),
+            tele_l2: matchOutcome.map((m) => m.auto_l2).reduce((sum, points) => sum + points, 0),
+            tele_l1: matchOutcome.map((m) => m.auto_l1).reduce((sum, points) => sum + points, 0),
         };
         let matchScore: number = matchOutcome.map((m) => m.auto_points + m.endgame_points).reduce((sum, points) => sum + points, 0);
         let autoPoints = matchOutcome.map((m) => m.auto_points).reduce((sum, points) => sum + points, 0);
@@ -323,11 +324,11 @@ function generateAllPossibleScores(forms: LiveDataRowWithOPR[][], allForms: Live
             }
         });
 
-        matchScore += (gpTotals.tele_l4 * 5);
-        matchScore += (gpTotals.tele_l3 * 4);
-        matchScore += (gpTotals.tele_made_net * 4);
-        matchScore += (gpTotals.tele_l2 * 3);
-        matchScore += (gpTotals.tele_l1 * 2);
+        matchScore += ((gpTotals.tele_l4 - matchOutcome.map((m) => m.auto_l4).reduce((sum, points) => sum + points, 0)) * 5);
+        matchScore += ((gpTotals.tele_l3 - matchOutcome.map((m) => m.auto_l3).reduce((sum, points) => sum + points, 0)) * 4);
+        matchScore += ((gpTotals.tele_made_net - matchOutcome.map((m) => m.auto_made_net).reduce((sum, points) => sum + points, 0)) * 4);
+        matchScore += ((gpTotals.tele_l2 - matchOutcome.map((m) => m.auto_l2).reduce((sum, points) => sum + points, 0)) * 3);
+        matchScore += ((gpTotals.tele_l1 - matchOutcome.map((m) => m.auto_l1).reduce((sum, points) => sum + points, 0)) * 2);
 
         values.push(matchScore);
         outcomes.push({
@@ -424,4 +425,12 @@ export function predictHeadToHead({ allianceA, allianceB, forms }: { allianceA: 
         winningPercentages: [
         ]
     }
+}
+
+export function getPredictedWinnerWelchTest({ allianceA, allianceB, forms }: { allianceA: number[], allianceB: number[], forms: LiveDataRowWithOPR[] }):WelchResult {
+    const alliancePredictionA = predictScoreFromTeams({ teams: allianceA, forms });
+    const alliancePredictionB = predictScoreFromTeams({ teams: allianceB, forms });
+
+    const welchOutput = welchTTest(alliancePredictionA.rawResponse.allScores, alliancePredictionB.rawResponse.allScores, 0.95);
+    return welchOutput;
 }

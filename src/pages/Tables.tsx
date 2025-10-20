@@ -187,8 +187,8 @@ export default function Tables() {
                         </div>
 
                         <table className={`table-auto border-collapse w-full text-sm md:text-base mt-18 ml-0 mb-15 ${tableType === "Raw" ? "shadow-lg rounded-lg overflow-hidden" : "border border-gray-300"}`}>
-                            <thead className="sticky top-0 transition-top duration-250">
-                                <tr className={tableType === "Raw" ? "bg-gradient-to-r from-orange-50 to-orange-100" : "bg-gray-200 shadow-lg"}>
+                            <thead className="sticky top-13 transition-top duration-250 pt-1">
+                                <tr className={tableType === "Raw" ? "bg-gradient-to-r from-orange-100 to-orange-100" : "bg-gray-200 shadow-lg"}>
                                     {(tableType === "Raw" ? columnOrder.filter((c) => c != 'opr') : numericColumns).map((col) => (
                                         <th
                                             key={col}
@@ -394,7 +394,7 @@ function TeamNumberSelector({
 }: {
     view: number;
     setView: (v: number) => void;
-    teamStats: Record<any, TeamStats>[]
+    teamStats: Record<any, TeamStats>
 }) {
     return (
         <div className="my-0 ml-2">

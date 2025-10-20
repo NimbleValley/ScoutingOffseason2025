@@ -6,8 +6,9 @@ import SettingsButton from "../components/SettingsButton";
 import { useScoutingStore } from "../app/localDataStore";
 import type { TeamStats } from "../app/types";
 import TeamCommentsModal from "../components/TeamCommentModal";
-import { predictHeadToHead, predictScoreFromTeams, type ScorePrediction, type ScorePredictionDouble } from "../predictions";
+import { getPredictedWinnerWelchTest, predictHeadToHead, predictScoreFromTeams, type ScorePrediction, type ScorePredictionDouble } from "../predictions";
 import CustomSelect from "../components/Select";
+import type { WelchResult } from "../app/statistics/twoSampleTTest";
 
 type SandboxType = "auto-viewer" | "match-prediction" | "alliance-selection" | "strategy-sim" | "ranking";
 
@@ -27,7 +28,7 @@ interface Alliance {
 }
 
 const sandboxes = [
-    { id: "auto-viewer" as SandboxType, name: "Auto Position Viewer", icon: Target },
+    //{ id: "auto-viewer" as SandboxType, name: "Auto Position Viewer", icon: Target },
     { id: "match-prediction" as SandboxType, name: "Match Predictor", icon: Zap },
     { id: "alliance-selection" as SandboxType, name: "Alliance Selection", icon: Users },
     { id: "ranking" as SandboxType, name: "Rank Simulation", icon: Trophy },
@@ -206,328 +207,343 @@ function MatchPredictor() {
     const [predictionSingle, setPredictionSingle] = useState<ScorePrediction | null>(null);
     const [predictionDouble, setPredictionDouble] = useState<ScorePredictionDouble | null>(null);
 
+    const [predictedTTest, setPredictedTTest] = useState<WelchResult>();
+
     const { forms, teamStats, loading, columnPercentiles, loadData, teamInfo } = useScoutingStore();
 
     const predictMatch = () => {
-        if (predictionType == 'Single')
-            setPredictionSingle(predictScoreFromTeams({ teams: currentAllianceA.filter((t) => t != -1), forms }));
-        else if (predictionType == 'Double')
-            setPredictionDouble(predictHeadToHead({ allianceA: currentAllianceA.filter((t) => t != -1), allianceB: currentAllianceB.filter((t) => t != -1), forms }));
+        if (predictionType == 'Single') { 
+        setPredictionSingle(predictScoreFromTeams({ teams: currentAllianceA.filter((t) => t != -1), forms }));
+    } else if (predictionType == 'Double') {
+        setPredictionDouble(predictHeadToHead({ allianceA: currentAllianceA.filter((t) => t != -1), allianceB: currentAllianceB.filter((t) => t != -1), forms }));
+        setPredictedTTest(getPredictedWinnerWelchTest({ allianceA: currentAllianceA.filter((t) => t != -1), allianceB: currentAllianceB.filter((t) => t != -1), forms }));
+        console.log(getPredictedWinnerWelchTest({ allianceA: currentAllianceA.filter((t) => t != -1), allianceB: currentAllianceB.filter((t) => t != -1), forms }))
+    }
 
-    };
+};
 
-    const [predictionType, setPredictionType] = useState<"Single" | "Double">('Single');
+const [predictionType, setPredictionType] = useState<"Single" | "Double">('Single');
 
-    return (
-        <div className="max-w-4xl mx-auto mb-50">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <Zap className="text-orange-500" />
-                    Hypothetical Match Predictor
-                </h2>
-                <p className="text-gray-600 mb-6">
-                    Predict match outcomes based on team statistics
-                </p>
+return (
+    <div className="max-w-4xl mx-auto mb-50">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Zap className="text-orange-500" />
+                Hypothetical Match Predictor
+            </h2>
+            <p className="text-gray-600 mb-6">
+                Predict match outcomes based on team statistics
+            </p>
 
-                <CustomSelect view={predictionType} setView={setPredictionType} label={'Prediction type'} options={['Single', 'Double']}></CustomSelect>
+            <CustomSelect view={predictionType} setView={setPredictionType} label={'Prediction type'} options={['Single', 'Double']}></CustomSelect>
 
-                <div className="grid md:grid-cols-2 gap-6 mb-6 mt-6">
+            <div className="grid md:grid-cols-2 gap-6 mb-6 mt-6">
 
-                    <div className="bg-gray-50 rounded-lg p-4 border-2 border-orange-300">
-                        <h3 className="text-lg font-bold text-black-700 mb-3">Alliance A</h3>
-                        {currentAllianceA.map((team, i) => (
-                            <select
-                                key={i}
-                                value={team}
-                                onChange={(e) => {
-                                    const newAlliance = [...currentAllianceA];
-                                    newAlliance[i] = parseInt(e.target.value);
-                                    setCurrentAllianceA(newAlliance);
-                                }}
-                                className="w-full px-3 py-2 mb-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500">
-                                <option key={-1}>Blank slot</option>
-                                {
-                                    Object.keys(teamStats)
-                                        .map((t) => teamStats[parseInt(t)])
-                                        .map((team, i) => (
-                                            <option key={i}>{team.team_number?.mean}</option>
-                                        ))
-                                }
-                            </select>
-                        ))}
-                    </div>
-
-                    {predictionType == 'Double' && <div className="bg-gray-50 rounded-lg p-4 border-2 border-orange-300">
-                        <h3 className="text-lg font-bold text-black-700 mb-3">Alliance B</h3>
-                        {currentAllianceB.map((team, i) => (
-                            <select
-                                key={i}
-                                value={team}
-                                onChange={(e) => {
-                                    const newAlliance = [...currentAllianceB];
-                                    newAlliance[i] = isNaN(parseInt(e.target.value)) ? -1 : parseInt(e.target.value);
-                                    setCurrentAllianceB(newAlliance);
-                                }}
-                                className="w-full px-3 py-2 mb-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500">
-                                <option key={-1}>Blank slot</option>
-                                {
-                                    Object.keys(teamStats)
-                                        .map((t) => teamStats[parseInt(t)])
-                                        .map((team, i) => (
-                                            <option key={i}>{team.team_number?.mean}</option>
-                                        ))
-                                }
-                            </select>
-                        ))}
-                    </div>}
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-orange-300">
+                    <h3 className="text-lg font-bold text-black-700 mb-3">Alliance A</h3>
+                    {currentAllianceA.map((team, i) => (
+                        <select
+                            key={i}
+                            value={team}
+                            onChange={(e) => {
+                                const newAlliance = [...currentAllianceA];
+                                newAlliance[i] = parseInt(e.target.value);
+                                setCurrentAllianceA(newAlliance);
+                            }}
+                            className="w-full px-3 py-2 mb-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 hover:ring-2 hover:ring-orange-300 cursor-pointer">
+                            <option key={-1} value={-1}>Blank slot</option>
+                            {
+                                Object.keys(teamStats)
+                                    .map((t) => teamStats[parseInt(t)])
+                                    .map((team, i) => (
+                                        <option key={i} value={team.team_number?.mean ?? -1}>{team.team_number?.mean}</option>
+                                    ))
+                            }
+                        </select>
+                    ))}
                 </div>
 
-                <button
-                    onClick={predictMatch}
-                    className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition shadow-md"
-                >
-                    Predict Match Outcome
-                </button>
-
-                {predictionType == 'Single' && predictionSingle?.meanScore && (
-                    <>
-                        <div className="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-gray-300">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
-                                Predicted Scores
-                            </h3>
-                            <div className="flex justify-around items-center gap-x-20 gap-y-5 flex-wrap">
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.minimumScore}</div>
-                                    <div className="text-sm text-gray-600 mt-1">Minimum</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.meanScore}</div>
-                                    <div className="text-sm text-gray-600 mt-1">Mean</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.medianScore}</div>
-                                    <div className="text-sm text-gray-600 mt-1">Median</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.q3Score}</div>
-                                    <div className="text-sm text-gray-600 mt-1">3rd Quartile</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.maximumScore}</div>
-                                    <div className="text-sm text-gray-600 mt-1">Maximum</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.percentageCoralCoopRP}%</div>
-                                    <div className="text-sm text-gray-600 mt-1">Coral RP (COOP)</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.percentageCoralNormalRP}%</div>
-                                    <div className="text-sm text-gray-600 mt-1">Coral RP (No COOP)</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-4xl font-bold text-orange-600">{predictionSingle.percentageBargeRP}%</div>
-                                    <div className="text-sm text-gray-600 mt-1">Barge RP</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-gray-300">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
-                                Possible Outcomes
-                            </h3>
-                            <h3 className="text-sm text-gray-600 mb-4 text-center">Outcomes of auto and endgame points are not guarenteed to be sorted ascendingly. This is because perhaps a climb leads to less tele cycles or vice-versa. These are real match combinations, not hypotheticals, making these simulations more realistic. Auto is also treated separate from tele, leading to balanced scores although theoretically impossible (ie 12+ coral per level).</h3>
-                            <div className="flex flex-row gap-5">
-                                <h3 className="text-lg text-gray-800 font-semibold mb-4 text-center">Teams included:</h3>
-                                <h3 className="text-lg text-red-600 font-semibold mb-4 text-center">{currentAllianceA[0] != -1 ? currentAllianceA[0] : ''}</h3>
-                                <h3 className="text-lg text-green-700 font-semibold mb-4 text-center">{currentAllianceA[1] != -1 ? currentAllianceA[1] : ''}</h3>
-                                <h3 className="text-lg text-purple-600 font-semibold mb-4 text-center">{currentAllianceA[2] != -1 ? currentAllianceA[2] : ''}</h3>
-                            </div>
-                            <div className="flex justify-around items-center gap-x-20 gap-y-5 flex-wrap">
-                                <div className="text-center">
-                                    <div className="text-lg text-gray-800 mt-1 underline">Worst Outcome</div>
-                                    <div className="flex flex-col">
-
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Auto points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.autoPoints}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L4:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l4}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L3:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l3}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L2:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l2}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L1:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l1}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele Net:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_made_net}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Endgame points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.endgamePoints}</p>
-                                        </div>
-
-                                    </div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-lg text-gray-800 mt-1 underline">Median Outcome</div>
-                                    <div className="flex flex-col">
-
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Auto points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.autoPoints}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L4:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l4}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L3:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l3}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L2:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l2}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L1:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l1}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele Net:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_made_net}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Endgame points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.endgamePoints}</p>
-                                        </div>
-
-                                    </div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-lg text-gray-800 mt-1 underline">Optimal Outcome</div>
-                                    <div className="flex flex-col">
-
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Auto points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.autoPoints}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L4:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l4}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L3:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l3}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L2:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l2}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele L1:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l1}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Tele Net:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_made_net}</p>
-                                        </div>
-                                        <div className="flex flex-row gap-3 items-center">
-                                            <h1 className="text-md font-semibold">Endgame points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.endgamePoints}</p>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
-
-                {predictionType == 'Double' && predictionDouble?.allianceScorePredictionA && (
-                    <div className="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-gray-300">
-                        <div className="flex justify-around items-center gap-5 flex-wrap">
+                {predictionType == 'Double' && <div className="bg-gray-50 rounded-lg p-4 border-2 border-orange-300">
+                    <h3 className="text-lg font-bold text-black-700 mb-3">Alliance B</h3>
+                    {currentAllianceB.map((team, i) => (
+                        <select
+                            key={i}
+                            value={team}
+                            onChange={(e) => {
+                                const newAlliance = [...currentAllianceB];
+                                newAlliance[i] = isNaN(parseInt(e.target.value)) ? -1 : parseInt(e.target.value);
+                                setCurrentAllianceB(newAlliance);
+                            }}
+                            className="w-full px-3 py-2 mb-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 hover:ring-2 hover:ring-orange-300 cursor-pointer">
+                            <option key={-1} value={-1}>Blank slot</option>
                             {
-                                predictionDouble.winningPercentages.map((item) => {
-                                    return (
-                                        <div className="text-center">
-                                            <div className="text-sm text-gray-600 mt-1">{item.description}:</div>
-                                            <div className="text-4xl font-bold text-orange-600">A Win: {item.allianceWinningPercentageA}%</div>
-                                            <div className="text-4xl font-bold text-orange-600">B Win: {item.allianceWinningPercentageA}%</div>
-                                        </div>
-                                    )
-                                })
+                                Object.keys(teamStats)
+                                    .map((t) => teamStats[parseInt(t)])
+                                    .map((team, i) => (
+                                        <option key={i} value={team.team_number?.mean ?? -1}>{team.team_number?.mean}</option>
+                                    ))
                             }
-                        </div>
+                        </select>
+                    ))}
+                </div>}
+            </div>
 
+            <button
+                onClick={predictMatch}
+                className="w-full cursor-pointer bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition shadow-md"
+            >
+                Predict Match Outcome
+            </button>
+
+            {predictionType == 'Double' && predictedTTest && <div className="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-gray-300">
+                <h3 className="text-2xl text-gray-800 mb-4 text-center">
+                    At 95% confidence, {Math.sign(predictedTTest.ci95[0]) == Math.sign(predictedTTest.ci95[1]) ? <span><span className="font-bold">Alliance {predictedTTest.diff > 0 ? 'A' : 'B'} is expected to win.</span> Alliance {predictedTTest.diff > 0 ? 'A' : 'B'} is predicted to win by <span className="font-bold">{Math.abs(Math.round(predictedTTest.ci95[Math.sign(predictedTTest.ci95[0]) > 0 ? 0 : 1]))} to {Math.abs(Math.round(predictedTTest.ci95[Math.sign(predictedTTest.ci95[0]) > 0 ? 1 : 0]))} points</span>. </span>: <span className="font-bold">no alliance has a clear advantage.</span>}
+                </h3>
+                <h3 className="text-2xl text-gray-800 mb-4 text-center">
+                    Mean result: Alliance A: <span className="font-bold">{Math.round(predictedTTest.mean1)}</span>, Alliance B: <span className="font-bold">{Math.round(predictedTTest.mean2)}</span>.
+                </h3>
+            </div>
+            }
+
+            {predictionType == 'Single' && predictionSingle?.meanScore && (
+                <>
+                    <div className="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-gray-300">
                         <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
-                            Alliance A:
+                            Predicted Scores
                         </h3>
                         <div className="flex justify-around items-center gap-x-20 gap-y-5 flex-wrap">
                             <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.minimumScore > predictionDouble.allianceScorePredictionB.minimumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.minimumScore}</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.minimumScore}</div>
                                 <div className="text-sm text-gray-600 mt-1">Minimum</div>
                             </div>
                             <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.meanScore > predictionDouble.allianceScorePredictionB.meanScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.meanScore}</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.meanScore}</div>
                                 <div className="text-sm text-gray-600 mt-1">Mean</div>
                             </div>
                             <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.medianScore > predictionDouble.allianceScorePredictionB.medianScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.medianScore}</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.medianScore}</div>
                                 <div className="text-sm text-gray-600 mt-1">Median</div>
                             </div>
                             <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.q3Score > predictionDouble.allianceScorePredictionB.q3Score ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.q3Score}</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.q3Score}</div>
                                 <div className="text-sm text-gray-600 mt-1">3rd Quartile</div>
                             </div>
                             <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.maximumScore > predictionDouble.allianceScorePredictionB.maximumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.maximumScore}</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.maximumScore}</div>
                                 <div className="text-sm text-gray-600 mt-1">Maximum</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageCoralCoopRP}%</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.percentageCoralCoopRP}%</div>
                                 <div className="text-sm text-gray-600 mt-1">Coral RP (COOP)</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageCoralNormalRP}%</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.percentageCoralNormalRP}%</div>
                                 <div className="text-sm text-gray-600 mt-1">Coral RP (No COOP)</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageBargeRP}%</div>
-                                <div className="text-sm text-gray-600 mt-1">Barge RP</div>
-                            </div>
-                        </div>
-
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 mt-15 text-center">
-                            Alliance B:
-                        </h3>
-                        <div className="flex justify-around items-center gap-x-20 gap-y-5 flex-wrap">
-                            <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.minimumScore > predictionDouble.allianceScorePredictionA.minimumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.minimumScore}</div>
-                                <div className="text-sm text-gray-600 mt-1">Minimum</div>
-                            </div>
-                            <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.meanScore > predictionDouble.allianceScorePredictionA.meanScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.meanScore}</div>
-                                <div className="text-sm text-gray-600 mt-1">Mean</div>
-                            </div>
-                            <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.medianScore > predictionDouble.allianceScorePredictionA.medianScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.medianScore}</div>
-                                <div className="text-sm text-gray-600 mt-1">Median</div>
-                            </div>
-                            <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.q3Score > predictionDouble.allianceScorePredictionA.q3Score ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.q3Score}</div>
-                                <div className="text-sm text-gray-600 mt-1">3rd Quartile</div>
-                            </div>
-                            <div className="text-center">
-                                <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.maximumScore > predictionDouble.allianceScorePredictionA.maximumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.maximumScore}</div>
-                                <div className="text-sm text-gray-600 mt-1">Maximum</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageCoralCoopRP}%</div>
-                                <div className="text-sm text-gray-600 mt-1">Coral RP (COOP)</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageCoralNormalRP}%</div>
-                                <div className="text-sm text-gray-600 mt-1">Coral RP (No COOP)</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageBargeRP}%</div>
+                                <div className="text-4xl font-bold text-orange-600">{predictionSingle.percentageBargeRP}%</div>
                                 <div className="text-sm text-gray-600 mt-1">Barge RP</div>
                             </div>
                         </div>
                     </div>
-                )}
+                    <div className="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-gray-300">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
+                            Possible Outcomes
+                        </h3>
+                        <h3 className="text-sm text-gray-600 mb-4 text-center">Outcomes of auto and endgame points are not guarenteed to be sorted ascendingly. This is because perhaps a climb leads to less tele cycles or vice-versa. These are real match combinations, not hypotheticals, making these simulations more realistic. Auto is also treated separate from tele, leading to balanced scores although theoretically not fully optimized.</h3>
+                        <div className="flex flex-row gap-5">
+                            <h3 className="text-lg text-gray-800 font-semibold mb-4 text-center">Teams included:</h3>
+                            <h3 className="text-lg text-red-600 font-semibold mb-4 text-center">{currentAllianceA[0] != -1 ? currentAllianceA[0] : ''}</h3>
+                            <h3 className="text-lg text-green-700 font-semibold mb-4 text-center">{currentAllianceA[1] != -1 ? currentAllianceA[1] : ''}</h3>
+                            <h3 className="text-lg text-purple-600 font-semibold mb-4 text-center">{currentAllianceA[2] != -1 ? currentAllianceA[2] : ''}</h3>
+                        </div>
+                        <div className="flex justify-around items-center gap-x-20 gap-y-5 flex-wrap">
+                            <div className="text-center">
+                                <div className="text-lg text-gray-800 mt-1 underline">Worst Outcome</div>
+                                <div className="flex flex-col">
 
-            </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md ">Auto points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.autoPoints}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L4:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l4}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L3:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l3}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L2:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l2}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L1:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_l1}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> Net:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.pieceDistribution.tele_made_net}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md ">Endgame points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.badOutcome.endgamePoints}</p>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-lg text-gray-800 mt-1 underline">Median Outcome</div>
+                                <div className="flex flex-col">
+
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md ">Auto points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.autoPoints}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L4:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l4}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L3:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l3}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L2:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l2}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L1:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_l1}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> Net:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.pieceDistribution.tele_made_net}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md ">Endgame points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.medianOutcome.endgamePoints}</p>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-lg text-gray-800 mt-1 underline">Optimal Outcome</div>
+                                <div className="flex flex-col">
+
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md ">Auto points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.autoPoints}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L4:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l4}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L3:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l3}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L2:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l2}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> L1:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_l1}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md "> Net:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.pieceDistribution.tele_made_net}</p>
+                                    </div>
+                                    <div className="flex flex-row gap-3 items-center">
+                                        <h1 className="text-md ">Endgame points:</h1> <p className="text-lg font-bold">{predictionSingle.rawResponse.optimalOutcome.endgamePoints}</p>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {predictionType == 'Double' && predictionDouble?.allianceScorePredictionA && (
+                <div className="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-gray-300">
+                    <div className="flex justify-around items-center gap-5 flex-wrap">
+                        {
+                            predictionDouble.winningPercentages.map((item) => {
+                                return (
+                                    <div className="text-center">
+                                        <div className="text-sm text-gray-600 mt-1">{item.description}:</div>
+                                        <div className="text-4xl font-bold text-orange-600">A Win: {item.allianceWinningPercentageA}%</div>
+                                        <div className="text-4xl font-bold text-orange-600">B Win: {item.allianceWinningPercentageA}%</div>
+                                    </div>
+                                )
+                            })
+                        }
+                    </div>
+
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
+                        Alliance A:
+                    </h3>
+                    <div className="flex justify-around items-center gap-x-20 gap-y-5 flex-wrap">
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.minimumScore > predictionDouble.allianceScorePredictionB.minimumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.minimumScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Minimum</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.meanScore > predictionDouble.allianceScorePredictionB.meanScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.meanScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Mean</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.medianScore > predictionDouble.allianceScorePredictionB.medianScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.medianScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Median</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.q3Score > predictionDouble.allianceScorePredictionB.q3Score ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.q3Score}</div>
+                            <div className="text-sm text-gray-600 mt-1">3rd Quartile</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionA.maximumScore > predictionDouble.allianceScorePredictionB.maximumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionA.maximumScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Maximum</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageCoralCoopRP}%</div>
+                            <div className="text-sm text-gray-600 mt-1">Coral RP (COOP)</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageCoralNormalRP}%</div>
+                            <div className="text-sm text-gray-600 mt-1">Coral RP (No COOP)</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionA.percentageBargeRP}%</div>
+                            <div className="text-sm text-gray-600 mt-1">Barge RP</div>
+                        </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 mt-15 text-center">
+                        Alliance B:
+                    </h3>
+                    <div className="flex justify-around items-center gap-x-20 gap-y-5 flex-wrap">
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.minimumScore > predictionDouble.allianceScorePredictionA.minimumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.minimumScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Minimum</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.meanScore > predictionDouble.allianceScorePredictionA.meanScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.meanScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Mean</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.medianScore > predictionDouble.allianceScorePredictionA.medianScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.medianScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Median</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.q3Score > predictionDouble.allianceScorePredictionA.q3Score ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.q3Score}</div>
+                            <div className="text-sm text-gray-600 mt-1">3rd Quartile</div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-4xl font-bold ${predictionDouble.allianceScorePredictionB.maximumScore > predictionDouble.allianceScorePredictionA.maximumScore ? 'text-orange-600' : 'text-gray-600'}`}>{predictionDouble.allianceScorePredictionB.maximumScore}</div>
+                            <div className="text-sm text-gray-600 mt-1">Maximum</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionB.percentageCoralCoopRP}%</div>
+                            <div className="text-sm text-gray-600 mt-1">Coral RP (COOP)</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionB.percentageCoralNormalRP}%</div>
+                            <div className="text-sm text-gray-600 mt-1">Coral RP (No COOP)</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-600">{predictionDouble.allianceScorePredictionB.percentageBargeRP}%</div>
+                            <div className="text-sm text-gray-600 mt-1">Barge RP</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
-    );
+    </div>
+);
 }
 
 function AllianceSelection() {
